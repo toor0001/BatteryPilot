@@ -18,17 +18,37 @@ The compact TTGO controller is mounted next to the Marstek Venus and handles the
 
 ## Why this project?
 
+The main reason for this project is not simply to display Marstek data in Home Assistant. It is to make the **Marstek Venus externally controllable as one component of a larger home energy-management system**.
+
+In the original installation, PV surplus is distributed between several flexible loads according to a custom priority scheme:
+
+1. **Electric vehicle first:** as much available PV surplus as possible should be used to charge the EV.
+2. **Hot water second:** if the car is not charging, is full, or cannot absorb the available surplus, the remaining energy is sent to an electric immersion heater for domestic hot water. A Node-RED flow controls the heater in several power stages between **0 and 3000 W**.
+3. **Battery third:** only when the EV does not need the energy and the water is already warm enough should the remaining surplus charge the Marstek Venus.
+
+The Marstek battery is therefore used primarily as a **time-shifting storage device**: it stores otherwise unused PV energy and is intended mainly to cover the house load later, especially during the night.
+
+The reverse direction is just as important. The Marstek must **not discharge in order to feed the EV charger or the immersion heater**. From the battery's point of view, those consumers could otherwise simply look like additional house load. That would defeat the intended priority scheme by moving previously stored energy into loads that should only consume current PV surplus.
+
+For this reason, the built-in Marstek control logic alone was not sufficient for this installation. The battery needed to become a controllable participant in the home's central energy-management logic. This ESPHome project provides that missing interface: via **RS485 / Modbus RTU**, Home Assistant can read the relevant operating data and explicitly command Marstek charge and discharge power.
+
+### What this repository does — and what it deliberately does not do
+
+This repository provides the **general-purpose Marstek integration and control layer**:
+
 - direct **RS485 / Modbus RTU** connection to the battery
 - **ESPHome** firmware
 - native **Home Assistant** entities
+- externally adjustable charge/discharge setpoints
 - **TTGO/LILYGO display** with SoC, power, Wi-Fi and Modbus status
-- manual charge/discharge setpoints
 - watchdog and Modbus recovery logic
 - plausibility filters for SoC and AC power
 - diagnostics for requested vs. measured battery power
 - experimental physical-button setpoint control
 - optional 3D-printed enclosure
 - no cloud required for local control
+
+The actual **Node-RED energy-management logic is intentionally not part of this repository**. Such logic depends heavily on the individual PV system, wallbox, EV, hot-water system, household loads and desired priorities. This project is therefore not intended to prescribe how a house should distribute its energy. Its purpose is to make the Marstek Venus **generically readable and controllable from Home Assistant**, so that it can be integrated into any suitable higher-level automation — Node-RED, Home Assistant automations or another controller.
 
 ## Hardware / parts list
 
@@ -76,11 +96,7 @@ modbus:
 
 The working reference build does **not use a special Marstek RS485 cable**. A normal Ethernet patch cable was cut at one end. The RJ45 plug remains connected to the Marstek Venus, while individual conductors from the cut end are wired into the controller.
 
-Three conductors can be identified confidently from the actual build and photos:
-
-- **blue**
-- **white/orange**
-- **orange**
+Three conductors can be identified confidently from the actual build and photos: **blue**, **white/orange**, and **orange**.
 
 At the small **3-pin connector inside the controller**, viewed as shown in the project photos, they are connected in this order:
 
