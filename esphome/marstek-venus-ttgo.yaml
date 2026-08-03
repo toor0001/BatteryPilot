@@ -1,1 +1,1110 @@
-PLACEHOLDER
+esphome:
+  name: ttgo-modbus
+  friendly_name: TTGO Venus UI
+  on_boot:
+    priority: -10
+    then:
+      - lambda: |-
+          id(master_enabled) = false;
+          id(ota_quiet) = false;
+          id(last_rx_ms) = millis();
+          id(boot_ms) = millis();
+          id(wd_recover_attempted) = false;
+          id(venus_set_charge_w).publish_state(0);
+          id(venus_set_discharge_w).publish_state(0);
+
+      - switch.turn_off: venus_master_rs485
+
+      - light.turn_on:
+          id: tft_backlight
+          brightness: 0.90
+
+      - delay: 15s
+
+      - if:
+          condition:
+            wifi.connected
+          then:
+            - logger.log: "WiFi connected -> enabling RS485 master after boot"
+            - switch.turn_on: venus_master_rs485
+          else:
+            - logger.log: "WiFi not connected -> RS485 master stays OFF"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG
+  logs:
+    modbus: DEBUG
+    modbus_controller: DEBUG
+    v3: DEBUG
+    v3-rx: DEBUG
+    ota: WARN
+
+api:
+  reboot_timeout: 3min
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+  reboot_timeout: 3min
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+globals:
+  - id: last_rx_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+  - id: master_enabled
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: ota_quiet
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  # --- AC glitch filter state ---
+  - id: ac_last_good_w
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: ac_zero_streak
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: ac_buf0
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  - id: ac_buf1
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  - id: ac_buf2
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  - id: ac_stable_w
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  - id: ac_buf_i
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  # --- SOC glitch filter state ---
+  - id: soc_last_good_pct
+    type: float
+    restore_value: no
+    initial_value: "NAN"
+  - id: soc_last_good_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+  - id: ui_setpoint_w
+    type: int
+    restore_value: yes
+    initial_value: "0"
+
+  - id: _ui_mode_tmp
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: _ui_chg_tmp
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: _ui_dis_tmp
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  # --- Mini-Graph History (60 Punkte) ---
+  - id: p_hist
+    type: std::vector<float>
+    restore_value: no
+    initial_value: "std::vector<float>(60, 0.0f)"
+  - id: p_hist_i
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: last_req_w
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: last_req_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: last_req_src
+    type: int
+    restore_value: no
+    initial_value: '0'   # 0=none, 1=HA, 2=UI
+
+  - id: req_ack_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: underdeliver_ticks
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: last_meas_w
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: boot_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+  - id: wd_recover_attempted
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO19
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          // --- (1) Ack-Erkennung: wann folgt die Leistung dem letzten Setpoint? ---
+          if (id(venus_modbus_ok).state && id(last_req_ms) != 0 && id(req_ack_ms) == 0) {
+            int set = id(last_req_w);
+            if (set != 0) {
+              float p = id(venus_ac_power_w_stable).has_state() ? id(venus_ac_power_w_stable).state : 0.0f;
+              float target = (float)set;
+              float tol = fmaxf(80.0f, fabsf(target) * 0.25f);
+              if (fabsf(p - target) <= tol) {
+                id(req_ack_ms) = millis();
+              }
+            }
+          }
+
+          // --- (2) Graph-History: Leistungswerte sammeln ---
+          float p2 = 0.0f;
+          if (id(venus_ac_power_w_stable).has_state()) p2 = id(venus_ac_power_w_stable).state;
+
+          // Clamp gegen Ausreißer (Graph stabil)
+          if (p2 >  8000) p2 =  8000;
+          if (p2 < -8000) p2 = -8000;
+
+          id(p_hist)[id(p_hist_i)] = p2;
+          id(p_hist_i) = (id(p_hist_i) + 1) % 60;
+
+          // --- (3) Underdelivery-Diagnose ---
+          int req = id(last_req_w);
+
+          int meas = 0;
+          if (id(venus_ac_power_w_stable).has_state()) {
+            meas = (int) lroundf(id(venus_ac_power_w_stable).state);
+          }
+          id(last_meas_w) = meas;
+
+          // nur bei Entladen beobachten
+          if (req > 0) {
+            int delta = req - meas;
+
+            // signifikanter Abstand?
+            if (delta > 250) {
+              id(underdeliver_ticks)++;
+            } else {
+              id(underdeliver_ticks) = 0;
+            }
+
+            // nach 5 Sekunden auffällig -> Log
+            if (id(underdeliver_ticks) == 5) {
+              ESP_LOGW("v3-rx",
+                "UNDERDELIVER: req=%dW meas=%dW delta=%dW soc=%.0f max_dis=%0.f ctrl=%.0f dis_reg=%.0f",
+                req,
+                meas,
+                delta,
+                id(venus_soc).has_state() ? id(venus_soc).state : NAN,
+                id(venus_max_discharge_w).has_state() ? id(venus_max_discharge_w).state : NAN,
+                id(venus_ctrl_mode_raw).state,
+                id(venus_discharge_w_raw).state
+              );
+            }
+          } else {
+            id(underdeliver_ticks) = 0;
+          }
+  - interval: 30s
+    then:
+      - logger.log:
+          level: INFO
+          format: "Heartbeat: wifi=%s modbus_ok=%s last_rx_ms=%u rx_age_s=%u soc=%.0f ac=%.0f req=%d meas=%d rs485=%.0f ctrl=%.0f dis_reg=%.0f max_dis=%.0f underTicks=%d"
+          args:
+            - 'wifi::global_wifi_component->is_connected() ? "on" : "off"'
+            - 'id(venus_modbus_ok).state ? "on" : "off"'
+            - 'id(last_rx_ms)'
+            - '(millis() - id(last_rx_ms)) / 1000'
+            - 'id(venus_soc).has_state() ? id(venus_soc).state : NAN'
+            - 'id(venus_ac_power_w_stable).has_state() ? id(venus_ac_power_w_stable).state : NAN'
+            - 'id(last_req_w)'
+            - 'id(last_meas_w)'
+            - 'id(venus_rs485_code).state'
+            - 'id(venus_ctrl_mode_raw).state'
+            - 'id(venus_discharge_w_raw).state'
+            - 'id(venus_max_discharge_w).has_state() ? id(venus_max_discharge_w).state : NAN'
+            - 'id(underdeliver_ticks)'
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              const uint32_t now = millis();
+              const bool boot_grace_over = (now - id(boot_ms)) > 120000;
+              const bool rx_stale = (now - id(last_rx_ms)) > 90000;
+              return boot_grace_over
+                     && id(master_enabled)
+                     && rx_stale
+                     && !id(wd_recover_attempted);
+          then:
+            - logger.log: "No Modbus RX for >90s -> cycling RS485 master once"
+            - lambda: |-
+                id(wd_recover_attempted) = true;
+                id(ui_setpoint_w) = 0;
+                id(last_req_w) = 0;
+            - number.set: { id: venus_set_charge_w, value: 0 }
+            - number.set: { id: venus_set_discharge_w, value: 0 }
+            - switch.turn_off: venus_master_rs485
+            - delay: 3s
+            - switch.turn_on: venus_master_rs485
+  - interval: 120s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              const uint32_t now = millis();
+              const bool boot_grace_over = (now - id(boot_ms)) > 180000;
+              const bool rx_stale = (now - id(last_rx_ms)) > 180000;
+              return boot_grace_over
+                     && id(master_enabled)
+                     && rx_stale
+                     && id(wd_recover_attempted);
+          then:
+            - logger.log: "No Modbus RX for >180s after recovery attempt -> restarting TTGO"
+            - button.press: ttgo_restart_button
+
+# ---------- Display backlight (internal, nicht in HA anzeigen) ----------
+output:
+  - platform: ledc
+    pin: GPIO4
+    id: tft_backlight_pwm
+
+light:
+  - platform: monochromatic
+    id: tft_backlight
+    output: tft_backlight_pwm
+    internal: true
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0s
+
+# ---------- UART / RS485 ----------
+uart:
+  id: uart_rs485
+  tx_pin: GPIO27
+  rx_pin: GPIO26
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+  rx_buffer_size: 2048
+
+modbus:
+  id: modbus1
+  uart_id: uart_rs485
+  flow_control_pin: GPIO25
+  send_wait_time: 350ms
+
+modbus_controller:
+  - id: venus_fast
+    address: 1
+    modbus_id: modbus1
+    setup_priority: -10
+    update_interval: 2s
+    command_throttle: 300ms
+
+  - id: venus_slow
+    address: 1
+    modbus_id: modbus1
+    setup_priority: -10
+    update_interval: 180s
+    command_throttle: 300ms
+
+# ---------- Sensoren (nur Node-RED relevant) ----------
+sensor:
+  - platform: wifi_signal
+    name: "TTGO WiFi RSSI"
+    id: wifi_rssi_dbm
+    update_interval: 60s
+    accuracy_decimals: 0
+
+  # AC Power RAW (fast) -> Filter -> stable + last_good
+  - platform: modbus_controller
+    name: "Venus AC Power raw (fast)"
+    id: venus_ac_w_raw
+    modbus_controller_id: venus_fast
+    register_type: holding
+    address: 30006
+    value_type: S_WORD
+    accuracy_decimals: 0
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            id(last_rx_ms) = millis();
+            id(wd_recover_attempted) = false;
+
+            const float v = x;
+
+            // Plausibilitätsgrenzen
+            const float ABS_MAX = 20000.0f;
+            const float PLAUS_MAX = 6500.0f;
+
+            // Zero-glitch hold
+            const float ZERO_HOLD_W = 50.0f;
+            const int ZERO_CONFIRM_N = 2;
+
+            if (!isfinite(v) || fabsf(v) > ABS_MAX) return;
+            if (fabsf(v) > PLAUS_MAX) return;
+
+            const float last = id(ac_last_good_w);
+
+            if (fabsf(v) < 0.5f && fabsf(last) > ZERO_HOLD_W) {
+              id(ac_zero_streak)++;
+              if (id(ac_zero_streak) < ZERO_CONFIRM_N) return;
+            } else {
+              id(ac_zero_streak) = 0;
+            }
+
+            id(ac_last_good_w) = v;
+
+            // Median-of-3
+            const int i = id(ac_buf_i);
+            if (i == 0) id(ac_buf0) = v;
+            else if (i == 1) id(ac_buf1) = v;
+            else id(ac_buf2) = v;
+            id(ac_buf_i) = (i + 1) % 3;
+
+            float a = id(ac_buf0), b = id(ac_buf1), c = id(ac_buf2);
+            float med;
+            if ((a <= b && b <= c) || (c <= b && b <= a)) med = b;
+            else if ((b <= a && a <= c) || (c <= a && a <= b)) med = a;
+            else med = c;
+
+            id(ac_stable_w) = med;
+  # max_cell_temperature: 35010, int16, scale 0.1 °C
+  - platform: modbus_controller
+    name: "Venus Max Cell Temp raw"
+    id: venus_max_cell_temp_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 35010
+    value_type: S_WORD
+    accuracy_decimals: 0
+    internal: true
+    force_new_range: true
+
+  # min_cell_temperature: 35011, int16, scale 0.1 °C
+  - platform: modbus_controller
+    name: "Venus Min Cell Temp raw"
+    id: venus_min_cell_temp_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 35011
+    value_type: S_WORD
+    accuracy_decimals: 0
+    internal: true
+    force_new_range: true
+
+  - platform: modbus_controller
+    name: "Venus Internal Temp raw"
+    id: venus_internal_temp_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 35000
+    value_type: S_WORD
+    accuracy_decimals: 0
+    internal: true
+    force_new_range: true
+
+  - platform: template
+    name: "Venus Max Cell Temperature"
+    id: venus_max_cell_temp_c
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      if (!id(venus_max_cell_temp_raw).has_state()) return NAN;
+      return id(venus_max_cell_temp_raw).state * 0.1f;
+
+  - platform: template
+    name: "Venus Min Cell Temperature"
+    id: venus_min_cell_temp_c
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      if (!id(venus_min_cell_temp_raw).has_state()) return NAN;
+      return id(venus_min_cell_temp_raw).state * 0.1f;
+
+  - platform: template
+    name: "Venus Internal Temperature"
+    id: venus_internal_temp_c
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      if (!id(venus_internal_temp_raw).has_state()) return NAN;
+      return id(venus_internal_temp_raw).state * 0.1f;
+
+  - platform: template
+    name: "Venus AC Power W"
+    id: venus_ac_power_w
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    filters:
+      - delta: 5
+    lambda: |-
+      return id(ac_last_good_w);
+
+  - platform: template
+    name: "Venus AC Power W Stable"
+    id: venus_ac_power_w_stable
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    filters:
+      - delta: 5
+      - heartbeat: 5s
+    lambda: |-
+      return id(ac_stable_w);
+
+  # SOC RAW -> last_good
+  - platform: modbus_controller
+    name: "Venus SOC raw"
+    id: venus_soc_raw
+    modbus_controller_id: venus_fast
+    register_type: holding
+    address: 37005
+    value_type: U_WORD
+    accuracy_decimals: 0
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            id(last_rx_ms) = millis();
+            id(wd_recover_attempted) = false;
+
+            const float v = x;
+            if (!isfinite(v) || v < 0.0f || v > 100.0f) return;
+
+            const float MAX_JUMP = 8.0f;
+            const uint32_t WINDOW_MS = 10UL * 60UL * 1000UL;
+
+            if (isfinite(id(soc_last_good_pct))) {
+              float d = fabsf(v - id(soc_last_good_pct));
+              uint32_t age = millis() - id(soc_last_good_ms);
+              if (d > MAX_JUMP && age < WINDOW_MS) return;
+            }
+
+            id(soc_last_good_pct) = v;
+            id(soc_last_good_ms) = millis();
+
+  - platform: template
+    name: "Venus SOC"
+    id: venus_soc
+    unit_of_measurement: "%"
+    device_class: battery
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 5s
+    filters:
+      - delta: 1
+      - heartbeat: 10s
+    lambda: |-
+      if (!isnan(id(soc_last_good_pct))) return id(soc_last_good_pct);
+      return NAN;
+
+  # Limits / Targets (wie Node-RED optional nutzt)
+  - platform: modbus_controller
+    name: "Venus Max Charge Power raw"
+    id: venus_max_charge_w_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 44002
+    value_type: U_WORD
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: modbus_controller
+    name: "Venus Max Discharge Power raw"
+    id: venus_max_discharge_w_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 44003
+    value_type: S_WORD
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: modbus_controller
+    name: "Venus Charge-To-SoC raw"
+    id: venus_charge_to_soc_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 42011
+    value_type: U_WORD
+    accuracy_decimals: 0
+    internal: true
+
+  - platform: template
+    name: "Venus Max Charge Power"
+    id: venus_max_charge_w
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: |-
+      if (!id(venus_max_charge_w_raw).has_state()) return NAN;
+      return id(venus_max_charge_w_raw).state;
+
+  - platform: template
+    name: "Venus Max Discharge Power"
+    id: venus_max_discharge_w
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: |-
+      if (!id(venus_max_discharge_w_raw).has_state()) return NAN;
+      return id(venus_max_discharge_w_raw).state;
+
+  - platform: template
+    name: "Venus Charge To SoC"
+    id: venus_charge_to_soc
+    unit_of_measurement: "%"
+    device_class: battery
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: |-
+      if (!id(venus_charge_to_soc_raw).has_state()) return NAN;
+      return id(venus_charge_to_soc_raw).state;
+
+# ---------- Modbus OK ----------
+binary_sensor:
+  - platform: template
+    name: "Venus Modbus OK"
+    id: venus_modbus_ok
+    lambda: |-
+      const uint32_t OK_MS = 45000;
+      return (millis() - id(last_rx_ms)) < OK_MS;
+
+  - platform: gpio
+    id: btn_left
+    internal: true
+    pin:
+      number: GPIO0
+      inverted: true
+      mode: INPUT_PULLUP
+    on_press:
+      then:
+        - lambda: |-
+            id(ui_setpoint_w) += 100;
+        - script.execute: ui_apply_setpoint
+
+  - platform: gpio
+    id: btn_right
+    internal: true
+    pin:
+      number: GPIO35
+      inverted: true
+    on_press:
+      then:
+        - lambda: |-
+            id(ui_setpoint_w) -= 100;
+        - script.execute: ui_apply_setpoint
+
+# ---------- Viper-konforme Steuerregister (internal) ----------
+number:
+  - platform: modbus_controller
+    name: "Venus RS485 Control Code (internal)"
+    id: venus_rs485_code
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 42000
+    value_type: U_WORD
+    internal: true
+
+  - platform: modbus_controller
+    name: "Venus Control Mode (internal)"
+    id: venus_ctrl_mode_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 42010
+    value_type: U_WORD
+    internal: true
+
+  - platform: modbus_controller
+    name: "Venus Charge Power W (internal)"
+    id: venus_charge_w_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 42020
+    value_type: U_WORD
+    internal: true
+
+  - platform: modbus_controller
+    name: "Venus Discharge Power W (internal)"
+    id: venus_discharge_w_raw
+    modbus_controller_id: venus_slow
+    register_type: holding
+    address: 42021
+    value_type: U_WORD
+    internal: true
+
+  # HA/Node-RED Setpoints (wie bei dir)
+  - platform: template
+    name: "Venus Set Charge Power W"
+    id: venus_set_charge_w
+    min_value: 0
+    max_value: 2500
+    step: 50
+    mode: box
+    optimistic: true
+    set_action:
+      - lambda: |-
+          if (!id(master_enabled)) {
+            ESP_LOGW("v3", "Set CHARGE blocked (MASTER OFF): %.0fW", x);
+            id(venus_set_charge_w).publish_state(0);
+            return;
+          }
+          int w = (int)x;
+          if (w < 0) w = 0;
+          w = (w/50)*50;
+          // Request tracking + Display sync
+          id(ui_setpoint_w) = w;
+          id(last_req_w) = w;
+          id(last_req_ms) = millis();
+          id(req_ack_ms) = 0;
+          if (w == 0) {
+            id(v3_stop_output).execute();
+          } else {
+            id(v3_apply_charge).execute(w);
+          }
+
+  - platform: template
+    name: "Venus Set Discharge Power W"
+    id: venus_set_discharge_w
+    min_value: 0
+    max_value: 2500
+    step: 50
+    mode: box
+    optimistic: true
+    set_action:
+      - lambda: |-
+          if (!id(master_enabled)) {
+            ESP_LOGW("v3", "Set DISCHARGE blocked (MASTER OFF): %.0fW", x);
+            id(venus_set_discharge_w).publish_state(0);
+            return;
+          }
+          int w = (int)x;
+          if (w < 0) w = 0;
+          w = (w/50)*50;
+          id(ui_setpoint_w) = -w;
+          id(last_req_w) = -w;
+          id(last_req_ms) = millis();
+          id(req_ack_ms) = 0;
+          if (w == 0) {
+            id(v3_stop_output).execute();
+          } else {
+            id(v3_apply_discharge).execute(w);
+          }
+
+script:
+  - id: v3_stop_output
+    mode: restart
+    then:
+      - lambda: |-
+          ESP_LOGW("v3", "STOP OUTPUT requested");
+      - number.set: { id: venus_ctrl_mode_raw, value: 0 }
+      - number.set: { id: venus_charge_w_raw, value: 0 }
+      - number.set: { id: venus_discharge_w_raw, value: 0 }
+
+  - id: v3_apply_charge
+    mode: restart
+    parameters:
+      w: int
+    then:
+      - lambda: |-
+          ESP_LOGW("v3", "CHARGE requested: %dW", w);
+      - number.set: { id: venus_ctrl_mode_raw, value: 1 }
+      - number.set:
+          id: venus_charge_w_raw
+          value: !lambda "return w;"
+
+  - id: v3_apply_discharge
+    mode: restart
+    parameters:
+      w: int
+    then:
+      - lambda: |-
+          ESP_LOGW("v3", "DISCHARGE requested: %dW", w);
+      - number.set: { id: venus_ctrl_mode_raw, value: 2 }
+      - number.set:
+          id: venus_discharge_w_raw
+          value: !lambda "return w;"
+
+  - id: v3_emergency_stop
+    mode: restart
+    then:
+      - lambda: |-
+          ESP_LOGW("v3", "EMERGENCY STOP (NOT-AUS)");
+      # 1) Sofort Ausgänge auf 0
+      - number.set: { id: venus_ctrl_mode_raw, value: 0 }
+      - number.set: { id: venus_charge_w_raw, value: 0 }
+      - number.set: { id: venus_discharge_w_raw, value: 0 }
+
+      # 2) Remote-Control hart deaktivieren
+      - number.set: { id: venus_rs485_code, value: 21947 }
+
+      # 3) Lokale Flags/UI zurücksetzen
+      - lambda: |-
+          id(master_enabled) = false;
+          id(ui_setpoint_w) = 0;
+      - number.set: { id: venus_set_charge_w, value: 0 }
+      - number.set: { id: venus_set_discharge_w, value: 0 }
+
+      # 4) Master-Switch in HA "aus" (UI-Sync)
+      - switch.turn_off: venus_master_rs485
+
+  - id: ui_apply_setpoint
+    mode: restart
+    then:
+      - lambda: |-
+          if (!id(master_enabled)) { ESP_LOGW("v3","UI setpoint ignored: MASTER OFF"); return; }
+          int sp = id(ui_setpoint_w);
+
+          const int MAX_W = 2500;
+          if (sp >  MAX_W) sp =  MAX_W;
+          if (sp < -MAX_W) sp = -MAX_W;
+
+          if (sp >= 0) sp = (sp / 100) * 100;
+          else sp = -(((-sp) / 100) * 100);
+
+          id(ui_setpoint_w) = sp;
+          // Request tracking (UI)
+          id(last_req_w) = sp;
+          id(last_req_ms) = millis();
+          id(req_ack_ms) = 0;
+
+          int mode = (sp > 0) ? 1 : (sp < 0) ? 2 : 0;
+          int chg  = (sp > 0) ? sp : 0;
+          int dis  = (sp < 0) ? -sp : 0;
+
+          id(_ui_mode_tmp) = mode;
+          id(_ui_chg_tmp)  = chg;
+          id(_ui_dis_tmp)  = dis;
+
+          ESP_LOGI("v3", "UI setpoint=%dW -> mode=%d chg=%d dis=%d", sp, mode, chg, dis);
+
+      - number.set: { id: venus_charge_w_raw, value: 0 }
+      - number.set: { id: venus_discharge_w_raw, value: 0 }
+      - number.set:
+          id: venus_ctrl_mode_raw
+          value: !lambda "return id(_ui_mode_tmp);"
+      - if:
+          condition:
+            lambda: 'return id(_ui_chg_tmp) > 0;'
+          then:
+            - number.set:
+                id: venus_charge_w_raw
+                value: !lambda "return id(_ui_chg_tmp);"
+      - if:
+          condition:
+            lambda: 'return id(_ui_dis_tmp) > 0;'
+          then:
+            - number.set:
+                id: venus_discharge_w_raw
+                value: !lambda "return id(_ui_dis_tmp);"
+
+# ---------- Master Enable + NOT-AUS + OTA Quiet + Restart ----------
+switch:
+  - platform: template
+    name: "Venus Master (RS485 Enable)"
+    id: venus_master_rs485
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      # ENABLE RS485 control (wie in (19).yaml)
+      - number.set: { id: venus_rs485_code, value: 21930 }
+      - lambda: id(master_enabled) = true;
+
+    turn_off_action:
+      - script.execute: v3_stop_output
+      # DISABLE RS485 control (wie in (19).yaml)
+      - number.set: { id: venus_rs485_code, value: 21947 }
+      - lambda: id(master_enabled) = false;
+
+  - platform: template
+    name: "TTGO OTA Quiet Mode"
+    id: ota_quiet_mode
+    optimistic: true
+    turn_on_action:
+      - lambda: id(ota_quiet) = true;
+      - light.turn_off: tft_backlight
+    turn_off_action:
+      - lambda: id(ota_quiet) = false;
+      - light.turn_on:
+          id: tft_backlight
+          brightness: 0.90
+
+button:
+  - platform: restart
+    name: "TTGO Restart"
+    id: ttgo_restart_button
+
+  - platform: template
+    name: "Venus NOT-AUS"
+    on_press:
+      - script.execute: v3_emergency_stop
+
+# ===================== FONTS (ersetzen/ergänzen) =====================
+font:
+  - file: "gfonts://Roboto Mono"
+    id: f_mono_12
+    size: 12
+  - file: "gfonts://Roboto Mono"
+    id: f_mono_16
+    size: 16
+  - file: "gfonts://Roboto Mono"
+    id: f_mono_24
+    size: 24
+  - file: "gfonts://Roboto Mono@700"
+    id: f_mono_18_bold
+    size: 18
+  - file: "gfonts://Roboto Mono"
+    id: f_mono_32
+    size: 32
+  - file: "gfonts://Roboto Mono"
+    id: f_mono_56
+    size: 56
+    glyphs: " 0123456789.-+"
+
+# ===================== DISPLAY (ersetzen) =====================
+display:
+  - platform: st7789v
+    model: TTGO_TDISPLAY_135X240
+    backlight_pin: no
+    cs_pin:
+      number: GPIO5
+      ignore_strapping_warning: true
+    dc_pin: GPIO16
+    reset_pin: GPIO23
+    rotation: 270
+    update_interval: 10s
+    lambda: |-
+      const int W = 240;
+      const int H = 135;
+
+      auto C_BG   = esphome::Color(10, 12, 16);
+      auto C_TXT  = esphome::Color(230, 235, 245);
+      auto C_DIM  = esphome::Color(140, 150, 170);
+      auto C_LINE = esphome::Color(70, 80, 95);
+      auto C_OK   = esphome::Color(60, 230, 130);   // Textfarbe
+      auto C_BAD  = esphome::Color(255, 70, 90);    // Textfarbe
+      auto C_WARN = esphome::Color(255, 200, 60);   // gelb/orange Warnfarbe
+
+      it.fill(C_BG);
+
+      // ---------- Read states ----------
+      const bool ok = id(venus_modbus_ok).state;
+
+      float p_raw = 0.0f;
+      if (id(venus_ac_power_w_stable).has_state()) p_raw = id(venus_ac_power_w_stable).state;
+
+      // + = Laden (grün), - = Entladen (rot)
+      float p = -p_raw;
+      if (fabsf(p) < 10.0f) p = 0.0f;
+
+      float soc = NAN;
+      if (id(venus_soc).has_state()) soc = id(venus_soc).state;
+
+      float rssi = NAN;
+      if (id(wifi_rssi_dbm).has_state()) rssi = id(wifi_rssi_dbm).state;
+
+      const int sp = id(ui_setpoint_w);
+
+      // WiFi quality 0..100
+      int wifi_q = -1;
+      if (!isnan(rssi)) {
+        float q = (rssi + 90.0f) * (100.0f / 40.0f);  // -90..-50 -> 0..100
+        if (q < 0) q = 0;
+        if (q > 100) q = 100;
+        wifi_q = (int) q;
+      }
+
+      // clamp soc
+      if (isnan(soc)) soc = 0.0f;
+      if (soc < 0) soc = 0;
+      if (soc > 100) soc = 100;
+
+      // ---------- Layout constants ----------
+      const int TOP_H = 16;
+      const int LW = 80;          // left third
+      const int RW = W - LW;      // right area
+      const int X_L = 0;
+      const int X_R = LW;
+
+      const int Y0 = TOP_H;       // content start
+      const int CH = H - TOP_H;
+
+      // ---------- Top status line (no filled blocks) ----------
+      it.filled_rectangle(0, 0, W, TOP_H, C_BG);
+      it.line(0, TOP_H-1, W-1, TOP_H-1, C_LINE);
+
+      // Left: VENUS
+      it.printf(4, 1, id(f_mono_12), C_TXT, "VENUS");
+
+      // Center: OK / NO
+      it.printf(80, 1, id(f_mono_12), ok ? C_OK : C_BAD, ok ? "OK" : "NO");
+
+      // Right: WiFi bar (outline only)
+      {
+        const int bx = W - 44;
+        const int by = 4;
+        const int bw = 40;
+        const int bh = 8;
+
+        it.printf(bx - 4, 1, id(f_mono_12), C_TXT, TextAlign::TOP_RIGHT, "WLAN");
+        it.rectangle(bx, by, bw, bh, C_LINE);
+
+        if (wifi_q >= 0) {
+          int fillw = (wifi_q * (bw - 2)) / 100;
+          // keine bunten Flächen? -> nimm "neutral" als Füllung
+          auto wc = (wifi_q < 20) ? C_BAD : (wifi_q < 45) ? C_WARN : C_OK;
+          it.filled_rectangle(bx + 1, by + 1, fillw, bh - 2, wc);
+        }
+      }
+
+      // ---------- Column separator ----------
+      it.line(LW, TOP_H, LW, H-1, C_LINE);
+
+      // ---------- LEFT INFO BOX (Set + SoC big) ----------
+      {
+        // outer box
+        it.rectangle(2, Y0 + 2, LW - 4, CH - 4, C_LINE);
+
+        // split line between SET and SOC
+        const int midY = Y0 + CH/2;
+        it.line(2, midY, LW - 3, midY, C_LINE);
+
+        // SET (top half)
+        it.printf(8, Y0 + 6, id(f_mono_16), C_DIM, "SET");
+        // value bigger
+        it.printf(LW - 9, Y0 + 22, id(f_mono_24), C_TXT, TextAlign::TOP_RIGHT, "%dW", sp);
+
+        // SOC (bottom half)
+        it.printf(8, midY + 6, id(f_mono_16), C_DIM, "SOC");
+        it.printf(LW - 9, midY + 22, id(f_mono_24), C_TXT, TextAlign::TOP_RIGHT, "%.0f%%", soc);
+
+      }
+
+      // ---------- RIGHT POWER AREA (huge) ----------
+      {
+        it.rectangle(X_R + 2, Y0 + 2, RW - 4, CH - 4, C_LINE);
+
+        if (!ok) {
+          it.printf(X_R + RW/2, Y0 + CH/2 - 12, id(f_mono_24), C_BAD, TextAlign::CENTER, "NO MODBUS");
+        } else {
+          // Farbe rein über Richtung (Vorzeichen wird NICHT angezeigt)
+          auto pcol = (p > 0.0f) ? C_OK : (p < 0.0f) ? C_BAD : C_DIM;
+          const int abs_p = (int) lroundf(fabsf(p));
+
+          // --- Status-Badge oben im Kasten (gefüllt) ---
+          // Nur zeigen wenn p != 0
+          if (p > 0.0f || p < 0.0f) {
+            const int bx = X_R + 10;
+            const int by = Y0 + 6;
+            const int bw = RW - 20;
+            const int bh = 22;
+
+            auto bcol = (p > 0.0f) ? C_OK : C_BAD;
+            it.filled_rectangle(bx, by, bw, bh, bcol);
+
+            // Text schwarz
+            auto C_BLACK = esphome::Color(0, 0, 0);
+            const char* label = (p > 0.0f) ? "LADEN" : "ENTLADEN";
+
+            // schön mittig
+            const int text_y = by + (bh - 18) / 2;
+
+            it.printf(bx + bw/2,
+                      text_y,
+                      id(f_mono_18_bold),
+                      C_BLACK,
+                      TextAlign::TOP_CENTER,
+                      "%s",
+                      label);
+                      }
+
+          // --- Große Zahl rechtsbündig, etwas tiefer (damit Badge nicht kollidiert) ---
+          const int num_x = X_R + RW - 10;
+          const int num_y = Y0 + 30;   // nach unten geschoben wegen Badge
+          it.printf(num_x, num_y, id(f_mono_56), pcol, TextAlign::TOP_RIGHT, "%d", abs_p);
+
+          // ---- SoC bar im Hauptkasten (unten) ----
+          {
+            const int bx = X_R + 10;
+            const int bw = RW - 20;
+            const int bh = 10;
+            const int by = Y0 + CH - 18;
+
+            it.rectangle(bx, by, bw, bh, C_LINE);
+
+            int fillw = (int)((bw - 2) * (soc / 100.0f));
+            auto scol = (soc < 15) ? C_BAD : (soc < 40) ? C_WARN : C_OK;
+            it.filled_rectangle(bx + 1, by + 1, fillw, bh - 2, scol);
+          }
+        }
+      }
