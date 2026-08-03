@@ -47,8 +47,6 @@ The ESP32 talks directly to the Venus over RS485. No cloud connection is require
 | GND | GND | common ground |
 | VCC | VCC | according to your RS485 module specification |
 
-The relevant ESPHome configuration is:
-
 ```yaml
 uart:
   id: uart_rs485
@@ -126,15 +124,15 @@ The configuration exposes, among others:
 
 ## Why is there an OTA Quiet Mode?
 
-The TTGO is sometimes installed where Wi-Fi reception is weak. In that situation the ESP32 has to spend more effort maintaining the wireless connection, and OTA updates can become less reliable.
+The TTGO may be installed in a location with weak Wi-Fi reception. During OTA updates or troubleshooting we want to leave as much headroom as possible for the ESP32, Wi-Fi and communication tasks.
 
-**TTGO OTA Quiet Mode** switches off the display backlight so the display becomes a non-essential load during troubleshooting or OTA updates. The intention is to give the ESP32 the best possible conditions for Wi-Fi/OTA operation and reduce unnecessary power/load while the radio connection is marginal.
+The display adds load in two ways: repeatedly drawing and refreshing the UI consumes CPU time and SPI activity, while the backlight also consumes electrical power. **TTGO OTA Quiet Mode** is intended to minimise unnecessary display load in these situations. In the current configuration it switches off the display backlight, reducing display power consumption and leaving more supply headroom for the ESP32 and Wi-Fi.
 
 It is particularly useful when:
 
 - the TTGO has weak Wi-Fi reception,
 - an OTA update is unstable,
-- you want to remove the display as an unnecessary load while diagnosing connectivity.
+- you want to minimise unnecessary display load while diagnosing connectivity.
 
 The mode does **not** disable the Marstek control logic. It is a service/troubleshooting mode for the TTGO itself.
 
@@ -198,19 +196,14 @@ STL files are located under [`enclosure/STL/`](enclosure/STL/).
 
 This project stands on work from the Marstek community. In particular:
 
-- **ViperRNMC – marstek_venus_modbus**  
-  https://github.com/ViperRNMC/marstek_venus_modbus  
-  Important reference for Marstek Venus Modbus register definitions and Home Assistant integration behaviour.
-
-- **Superduper1969 – MarstekVenus-LilygoRS485**  
-  https://github.com/Superduper1969/MarstekVenus-LilygoRS485  
-  ESPHome/LILYGO RS485 reference implementation and inspiration for a direct ESP-based Marstek interface.
+- **ViperRNMC – marstek_venus_modbus** – important reference for Marstek Venus Modbus register definitions and Home Assistant integration behaviour.
+- **Superduper1969 – MarstekVenus-LilygoRS485** – ESPHome/LILYGO RS485 reference implementation and inspiration for a direct ESP-based Marstek interface.
 
 ## Support this project
 
 If this project helped you and you want to support further development:
 
-[![Support via PayPal](https://img.shields.io/badge/Support%20via-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/toor0001)
+<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-en.svg" alt="Buy me a coffee via PayPal" width="430"></a>
 
 ## Safety
 
