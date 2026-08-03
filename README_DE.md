@@ -27,7 +27,7 @@ Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung
 | Bauteil | Zweck | Hinweis | Bezugsquelle |
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
-| TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | Link folgt |
+| TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | [Amazon*](https://link.amazon/B0evMwitV) |
 | USB-Netzteil + USB-Kabel | Versorgung des TTGO | stabile 5-V-Versorgung empfohlen | [Amazon*](https://link.amazon/B0cxu0tlI) |
 | RS485-Leitung | Verbindung zum Venus | verdrilltes A/B-Paar empfohlen | Link folgt |
 | passender Stecker für den Marstek-RS485-Port | Anschluss am Speicher | Pinbelegung am eigenen Gerät prüfen | Link folgt |
@@ -126,17 +126,17 @@ Unter anderem werden bereitgestellt:
 
 ## Warum gibt es den OTA Quiet Mode?
 
-Der TTGO hängt bei solchen Installationen oft im Keller oder Technikraum, wo das WLAN nicht besonders gut ist. Bei schwacher Verbindung muss der ESP32 mehr Arbeit in die Funkverbindung stecken, und OTA-Updates können dadurch instabil werden.
+Der TTGO kann an einem Ort mit schwachem WLAN-Empfang betrieben werden. Gerade bei OTA-Updates oder bei der Fehlersuche möchten wir dem ESP32 möglichst viel Reserve für WLAN und die eigentliche Kommunikation geben.
 
-Der **TTGO OTA Quiet Mode** schaltet deshalb die Display-Hintergrundbeleuchtung ab. Die Idee dahinter: Das Display ist während Fehlersuche oder OTA-Update nicht wichtig, also wird diese zusätzliche Last abgeschaltet, damit der ESP32 möglichst viel Reserve für WLAN, OTA und seine übrigen Aufgaben hat.
+Das Display verursacht dabei zwei Arten zusätzlicher Last: Das regelmäßige Zeichnen und Aktualisieren der Anzeige benötigt Rechenzeit und SPI-Kommunikation, während die Hintergrundbeleuchtung zusätzlich Strom aus der Versorgung benötigt. Der **TTGO OTA Quiet Mode** dient deshalb dazu, das Display während solcher Situationen möglichst aus dem Weg zu nehmen und unnötige Last zu reduzieren. In der aktuellen Konfiguration wird dabei die Hintergrundbeleuchtung abgeschaltet; dadurch sinkt insbesondere der Strombedarf des Displays und die Versorgung hat mehr Reserve für ESP32 und WLAN.
 
 Der Modus ist besonders sinnvoll wenn:
 
 - der TTGO schlechten WLAN-Empfang hat,
 - ein OTA-Update instabil läuft,
-- man das Display während der Netzwerksuche bewusst als unnötige Last herausnehmen möchte.
+- man während der Fehlersuche möglichst wenig unnötige Display-Last haben möchte.
 
-Wichtig: Der Modus schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Service-/Diagnosemodus für den TTGO selbst.
+Wichtig: Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Service-/Diagnosemodus für den TTGO selbst.
 
 ## Steuerregister
 
@@ -200,19 +200,14 @@ Die STL-Dateien liegen unter [`enclosure/STL/`](enclosure/STL/).
 
 Dieses Projekt baut auf Arbeit aus der Marstek-Community auf. Besonders wichtig waren:
 
-- **ViperRNMC – marstek_venus_modbus**  
-  https://github.com/ViperRNMC/marstek_venus_modbus  
-  Wichtige Referenz für Marstek-Venus-Modbus-Register und das Verhalten der Home-Assistant-Anbindung.
-
-- **Superduper1969 – MarstekVenus-LilygoRS485**  
-  https://github.com/Superduper1969/MarstekVenus-LilygoRS485  
-  ESPHome/LILYGO-RS485-Referenz und Inspiration für eine direkte ESP-basierte Marstek-Anbindung.
+- **ViperRNMC – marstek_venus_modbus** – wichtige Referenz für Marstek-Venus-Modbus-Register und das Verhalten der Home-Assistant-Anbindung.
+- **Superduper1969 – MarstekVenus-LilygoRS485** – ESPHome/LILYGO-RS485-Referenz und Inspiration für eine direkte ESP-basierte Marstek-Anbindung.
 
 ## Projekt unterstützen
 
 Wenn dir das Projekt geholfen hat und du die Weiterentwicklung unterstützen möchtest:
 
-[![Mit PayPal unterstützen](https://img.shields.io/badge/❤️%20Support-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/toor0001)
+<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendiere mir einen Kaffee via PayPal" width="430"></a>
 
 ## Sicherheit
 
