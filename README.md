@@ -10,11 +10,11 @@ The ESP32 communicates directly with the Venus over RS485. No cloud connection i
 
 ## Finished installation
 
-![Marstek Venus with TTGO RS485 controller](images/wall_setup.jpg)
+<p align="center"><img src="images/wall_setup.jpg" alt="Marstek Venus with TTGO RS485 controller" width="900"></p>
 
 The compact TTGO controller is mounted next to the Marstek Venus and handles the local RS485 communication.
 
-<p align="center"><img src="images/case.jpg" alt="3D printed TTGO enclosure" width="520"></p>
+<p align="center"><img src="images/case.jpg" alt="3D printed TTGO enclosure" width="900"></p>
 
 ## Why this project?
 
@@ -26,7 +26,7 @@ The compact TTGO controller is mounted next to the Marstek Venus and handles the
 - watchdog and Modbus recovery logic
 - plausibility filters for SoC and AC power
 - diagnostics for requested vs. measured battery power
-- physical buttons for local setpoint control
+- experimental physical-button setpoint control
 - optional 3D-printed enclosure
 - no cloud required for local control
 
@@ -85,25 +85,27 @@ Modbus slave ID: 1
 
 ### Inside the controller
 
-![Inside the TTGO controller](images/case_open.jpg)
+<p align="center"><img src="images/case_open.jpg" alt="Inside the TTGO controller" width="900"></p>
 
 The TTGO T-Display and RS485 interface are housed together. The cables leave the enclosure through side cable glands.
 
 ## Display and the two buttons
 
-<p align="center"><img src="images/display.jpg" alt="TTGO display in operation" width="620"></p>
+<p align="center"><img src="images/display.jpg" alt="TTGO display in operation" width="900"></p>
 
 The display shows the current setpoint (**SET**), state of charge (**SOC**), actual power and communication/Wi-Fi status.
 
-The two small TTGO buttons provide direct local power control without opening Home Assistant:
+> **Experimental / not yet hardware-tested:** The following button behaviour is implemented in the current YAML but has not yet been verified on the physical unit shown here. Test with small setpoints first.
+
+The intended function of the two small TTGO buttons is:
 
 - **Left button (GPIO0):** increases the setpoint by **100 W** per press. Positive setpoints mean **charging**.
 - **Right button (GPIO35):** decreases the setpoint by **100 W** per press. Negative setpoints mean **discharging**.
 - At **0 W** output is stopped.
 - Firmware limits the local setpoint to **−2500 W … +2500 W**.
-- Button control is accepted only while **Venus Master (RS485 Enable)** is enabled.
+- Button commands are processed only while **Venus Master (RS485 Enable)** is enabled.
 
-Example: starting at 0 W, pressing left three times selects **+300 W charging**. Pressing right three times returns to 0 W; further right presses move into discharge mode.
+According to the current implementation, starting at 0 W and pressing left three times would select **+300 W charging**. Pressing right three times would return to 0 W; further right presses would move into discharge mode.
 
 ## ESPHome installation
 
@@ -117,7 +119,7 @@ Example: starting at 0 W, pressing left three times selects **+300 W charging**.
 
 ## Home Assistant
 
-![ESPHome device in Home Assistant](images/HA%20Screenshot.jpg)
+<p align="center"><img src="images/HA%20Screenshot.jpg" alt="ESPHome device in Home Assistant" width="900"></p>
 
 Entities include Venus SOC, AC Power, Stable Power, maximum charge/discharge power, temperatures, Modbus OK, charge/discharge setpoints, RS485 Master, emergency stop, OTA Quiet Mode, restart and WiFi RSSI.
 
@@ -153,7 +155,7 @@ If the requested power and force mode look correct but the battery remains at 0 
 
 ## What the firmware does
 
-The YAML includes fast/slow Modbus polling, AC power plausibility and median filtering, SoC jump rejection, request/ack tracking, under-delivery diagnostics, Modbus freshness monitoring, recovery/watchdog logic, emergency stop, local TFT UI, physical button control and RS485 control-code readback in the heartbeat.
+The YAML includes fast/slow Modbus polling, AC power plausibility and median filtering, SoC jump rejection, request/ack tracking, under-delivery diagnostics, Modbus freshness monitoring, recovery/watchdog logic, emergency stop, local TFT UI, experimental physical-button control and RS485 control-code readback in the heartbeat.
 
 A section-by-section explanation is in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 
