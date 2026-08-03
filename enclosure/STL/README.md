@@ -3,7 +3,7 @@
 Dieser Ordner enthält die 3D-Druckdateien für das Gehäuse des TTGO-/RS485-Controllers.
 
 - [`Body.stl`](Body.stl) – Gehäusekörper
-- [`cover.stl`](cover.stl) – Frontabdeckung mit Display-, Tasten- und Lüftungsöffnungen
+- [`Cover.stl`](Cover.stl) – Frontabdeckung mit Display-, Tasten- und Lüftungsöffnungen
 
 Die Dateien können direkt aus GitHub heruntergeladen und in einem Slicer geöffnet werden.
 
