@@ -27,7 +27,7 @@ The ESP32 talks directly to the Venus over RS485. No cloud connection is require
 | Part | Purpose | Notes | Link |
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, Wi-Fi and local display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
-| TTL ↔ RS485 transceiver module | Physical Modbus/RS485 interface | Check 3.3 V logic compatibility | link follows |
+| TTL ↔ RS485 transceiver module | Physical Modbus/RS485 interface | Check 3.3 V logic compatibility | [Amazon*](https://link.amazon/B0evMwitV) |
 | USB power supply + cable | TTGO power supply | Stable 5 V supply recommended | [Amazon*](https://link.amazon/B0cxu0tlI) |
 | RS485 cable | Connection to Venus | Twisted A/B pair recommended | link follows |
 | Suitable connector for Marstek RS485 port | Battery connection | Verify pinout on your device | link follows |
