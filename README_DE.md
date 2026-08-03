@@ -18,17 +18,37 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 
 ## Warum dieses Projekt?
 
+Der eigentliche Grund für dieses Projekt ist nicht nur, Daten des Marstek in Home Assistant anzuzeigen. Ziel ist es, den **Marstek Venus als gezielt steuerbaren Bestandteil eines übergeordneten Energiemanagements** nutzbar zu machen.
+
+Im ursprünglichen Hausaufbau wird der PV-Überschuss nach einer eigenen Prioritätslogik auf mehrere flexible Verbraucher verteilt:
+
+1. **Elektroauto zuerst:** Möglichst der gesamte verfügbare PV-Überschuss soll zunächst zum Laden des Elektroautos verwendet werden.
+2. **Warmwasser danach:** Lädt das Auto nicht, ist es voll oder kann es den vorhandenen Überschuss nicht aufnehmen, wird die verbleibende Energie für die Warmwasserbereitung genutzt. Ein elektrischer Heizstab wird dafür über einen Node-RED-Flow in mehreren Leistungsstufen zwischen **0 und 3000 W** geregelt.
+3. **Marstek zuletzt:** Erst wenn das Elektroauto keine Energie benötigt und das Wasser bereits warm genug ist, soll der noch vorhandene PV-Überschuss in den Marstek Venus geladen werden.
+
+Der Batteriespeicher dient damit hauptsächlich als **zeitlicher Energiespeicher**: Er nimmt ansonsten ungenutzte PV-Energie auf und soll sie später wieder für die normale Hauslast bereitstellen – insbesondere zur Abdeckung der nächtlichen Last.
+
+Mindestens genauso wichtig ist die umgekehrte Richtung: Der Marstek soll **nicht entladen, um das Elektroauto oder den Heizstab zu versorgen**. Aus Sicht des Speichers könnten diese großen Verbraucher ansonsten einfach wie zusätzliche Hauslast aussehen. Damit würde bereits gespeicherte Energie wieder in Verbraucher fließen, die nach der gewünschten Priorisierung ausschließlich mit aktuellem PV-Überschuss betrieben werden sollen.
+
+Aus diesem Grund reichte die interne Marstek-Steuerlogik für diesen Anwendungsfall nicht aus. Der Speicher musste zu einem gezielt steuerbaren Teilnehmer des zentralen Energiemanagements werden. Genau dafür stellt dieses ESPHome-Projekt die fehlende Schnittstelle bereit: Über **RS485 / Modbus RTU** können Home Assistant und eine übergeordnete Automation die relevanten Betriebsdaten auslesen und die Lade- bzw. Entladeleistung des Marstek gezielt vorgeben.
+
+### Was dieses Repository macht – und was bewusst nicht
+
+Dieses Repository stellt die **allgemeingültige Marstek-Integrations- und Steuerschicht** bereit:
+
 - direkte **RS485 / Modbus RTU** Verbindung zum Speicher
 - **ESPHome** Firmware
 - native **Home Assistant** Entitäten
+- von außen einstellbare Lade-/Entlade-Sollwerte
 - **TTGO/LILYGO Display** mit SoC, Leistung, WLAN- und Modbus-Status
-- manuelle Lade-/Entlade-Sollwerte
 - Watchdog und Modbus-Recovery
 - Plausibilitätsfilter für SoC und AC-Leistung
 - Diagnose von Soll- gegen Ist-Leistung
 - experimentelle lokale Bedienung über die beiden TTGO-Tasten
 - optionales 3D-gedrucktes Gehäuse
 - lokale Steuerung ohne Cloud-Zwang
+
+Die eigentliche **Node-RED-Energiemanagement-Logik ist bewusst nicht Bestandteil dieses Repositories**. Eine solche Logik hängt stark von der jeweiligen PV-Anlage, Wallbox, dem Elektroauto, der Warmwasserbereitung, weiteren Hausverbrauchern und den persönlichen Prioritäten ab. Dieses Projekt soll daher nicht vorgeben, wie ein Haus seine Energie verteilen muss. Es macht den Marstek Venus stattdessen **allgemeingültig in Home Assistant auslesbar und steuerbar**, sodass er in eine beliebige übergeordnete Automation eingebunden werden kann – beispielsweise Node-RED, Home-Assistant-Automationen oder eine andere Steuerlogik.
 
 ## Hardware / Teileliste
 
@@ -76,11 +96,7 @@ modbus:
 
 Für den funktionierenden Referenzaufbau wurde **kein spezielles Marstek-RS485-Kabel** verwendet. Stattdessen wurde ein normales Ethernet-Patchkabel an einer Seite abgeschnitten. Der RJ45-Stecker bleibt am Marstek Venus eingesteckt; am anderen Ende werden nur die benötigten Einzeladern verwendet.
 
-Am real aufgebauten Gerät sind anhand des Aufbaus und der Fotos drei Adern eindeutig nachvollziehbar:
-
-- **blau**
-- **weiß/orange**
-- **orange**
+Am real aufgebauten Gerät sind anhand des Aufbaus und der Fotos drei Adern eindeutig nachvollziehbar: **blau**, **weiß/orange** und **orange**.
 
 Am kleinen **3-poligen Steckverbinder im Controller** sind sie, so wie der Stecker auf den Projektfotos zu sehen ist, in dieser Reihenfolge aufgelegt:
 
