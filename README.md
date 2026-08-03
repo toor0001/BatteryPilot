@@ -37,15 +37,16 @@ The compact TTGO controller is mounted next to the Marstek Venus and handles the
 | LILYGO / TTGO T-Display ESP32 | Controller, Wi-Fi and display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 transceiver module | Modbus/RS485 interface | Check 3.3 V logic compatibility | [Amazon*](https://link.amazon/B0evMwitV) |
 | USB power supply + cable | TTGO power supply | Stable 5 V supply recommended | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| RS485 cable | Connection to Venus | Twisted A/B pair recommended | link follows |
-| Suitable Marstek RS485 connector | Battery connection | Verify pinout on your device | link follows |
-| 3D-printed enclosure | Mechanical protection | Body + Lid STL included | [STL folder](enclosure/STL/) |
+| Standard Ethernet patch cable | Connection to Marstek | One end is cut off; blue, white/orange and orange are used in the shown build | any suitable cable |
+| 3D-printed enclosure | Mechanical protection | Body + Cover STL included | [STL folder](enclosure/STL/) |
 
 \* **Affiliate notice:** Links marked with `*` may be affiliate links. If you buy something through them, the project owner may receive a small commission. Your price does not change.
 
 ## Wiring
 
 ### ESP32 ↔ RS485 module
+
+This mapping is defined by the current ESPHome configuration:
 
 | TTGO / ESP32 | RS485 module | Function |
 |---|---|---|
@@ -71,9 +72,45 @@ modbus:
   flow_control_pin: GPIO25
 ```
 
-### RS485 ↔ Marstek Venus
+### Marstek Venus ↔ controller: actual patch-cable wiring
 
-At least differential lines **A** and **B** are connected. Depending on the module/installation a common GND may also be useful or required. A/B naming is not consistent across all RS485 modules, so swapped A/B lines are one of the first things to check if there is no communication.
+The working reference build does **not use a special Marstek RS485 cable**. A normal Ethernet patch cable was cut at one end. The RJ45 plug remains connected to the Marstek Venus, while individual conductors from the cut end are wired into the controller.
+
+Three conductors can be identified confidently from the actual build and photos:
+
+- **blue**
+- **white/orange**
+- **orange**
+
+At the small **3-pin connector inside the controller**, viewed as shown in the project photos, they are connected in this order:
+
+```text
+top      → blue
+2nd pin  → white/orange
+3rd pin  → orange
+```
+
+For a normally wired **T568B** patch cable these colours correspond to:
+
+| Wire colour | T568B RJ45 pin | Role we can establish |
+|---|---:|---|
+| white/orange | 1 | one conductor of the RS485 differential pair |
+| orange | 2 | the other conductor of the RS485 differential pair |
+| blue | 4 | third conductor used in the actual build |
+
+The working installation therefore confirms that **white/orange and orange form the RS485 data pair used by this build**. The original build did not record which of those two wires is labelled **A** and which is labelled **B** on the particular RS485 module, and the available photographs are not clear enough to make that assignment safely. This README therefore deliberately avoids inventing an A/B colour mapping.
+
+The **blue conductor** is also connected in the working build. Its RJ45 pin position and the physical arrangement suggest a supply-related role, but its exact electrical assignment was not separately measured/documented during construction. Again, the documentation intentionally does not claim more than can be reconstructed from the working hardware.
+
+> **Important:** Do not blindly connect three wires by colour. Patch cables may use a different wiring scheme. The RJ45 pin numbers are what matter. For a reproduction, identify the conductors from the RJ45 plug to the cut end with a multimeter/continuity tester.
+
+> **RS485 A/B:** A and B naming is unfortunately not consistent between all RS485 adapters. If everything else is wired correctly but Modbus communication does not work, swapped differential data lines may be the reason. In that case swap only the two RS485 data conductors. Never experimentally swap a suspected supply conductor with a data conductor.
+
+### What is known reliably on the TTGO side
+
+In the prototype the patch-cable conductors first enter the internal wiring/RS485 board. The **TTGO-to-RS485-transceiver** signals, however, are unambiguous because they are defined in the YAML: TX = GPIO27, RX = GPIO26 and DE/RE = GPIO25. For a reproduction it is therefore better to follow these documented signals and the markings on your own RS485 module than to copy every internal prototype wire colour.
+
+Reference parameters:
 
 ```text
 Baud rate: 115200
@@ -164,7 +201,7 @@ A section-by-section explanation is in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPL
 The enclosure consists of two printable parts:
 
 - [`Body.stl`](enclosure/STL/Body.stl) – enclosure body
-- [`Lid.stl`](enclosure/STL/Lid.stl) – front lid with display, button and ventilation openings
+- [`Cover.stl`](enclosure/STL/Cover.stl) – front cover with display, button and ventilation openings
 
 The files can be downloaded directly from the repository and opened in your slicer. The shown enclosure houses the TTGO, RS485 interface and wiring together.
 
