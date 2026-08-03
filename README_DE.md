@@ -56,13 +56,49 @@ Die eigentliche **Node-RED-Energiemanagement-Logik ist bewusst nicht Bestandteil
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | [Amazon*](https://link.amazon/B0evMwitV) |
-| USB-Netzteil + USB-Kabel | Versorgung des TTGO | stabile 5-V-Versorgung empfohlen | [Amazon*](https://link.amazon/B0cxu0tlI) |
+| 5-V-Netzteil | feste Versorgung des Controllers | Im Referenzaufbau werden +5 V und GND auf die grüne Lochraster-/Trägerplatine geführt; die Micro-USB-Buchse ist nicht die reguläre Versorgung im eingebauten Zustand | [Amazon*](https://link.amazon/B0cxu0tlI) |
 | normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten; im gezeigten Aufbau werden blau, weiß/orange und orange genutzt | vorhanden / beliebig |
 | 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Cover als STL enthalten | [STL-Ordner](enclosure/STL/) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
 
 ## Verdrahtung
+
+### Gesamtübersicht
+
+Der fertige Controller hat zwei getrennte Verbindungswege: **Versorgung** und **RS485-Kommunikation**.
+
+```text
+230 V AC
+   │
+   ▼
+5-V-Netzteil
+   │  +5 V / GND
+   ▼
+grüne Lochraster-/Trägerplatine
+   │
+   ├──► TTGO T-Display
+   └──► RS485-Elektronik / gemeinsame Versorgung
+
+TTGO T-Display
+   │ GPIO27 / GPIO26 / GPIO25 / GND
+   ▼
+RS485-Transceiver
+   │ A / B / Bezugspotential
+   ▼
+aufgetrenntes Ethernet-Patchkabel
+   │
+   ▼
+Marstek Venus RS485-Port
+```
+
+### Stromversorgung: Netzteil → Trägerplatine → TTGO
+
+Im **fest eingebauten Referenzaufbau** wird der TTGO **nicht über seine Micro-USB-Buchse versorgt**. Das externe Netzteil liefert 5 V. **+5 V und GND werden auf die grüne Lochraster-/Trägerplatine geführt**, auf der der TTGO eingelötet ist. Über diese Platine wird der Controller versorgt; dort befindet sich auch die interne Verdrahtung zum RS485-Interface.
+
+Die auf einzelnen Fotos sichtbare USB-Verbindung am TTGO wurde lediglich beim **Testen/Flashen** verwendet und stellt nicht die normale Versorgung des eingebauten Controllers dar.
+
+> **Wichtig:** Nur eine stabilisierte 5-V-Versorgung verwenden und vor dem Anschluss Polarität und Spannung messen. Nicht gleichzeitig eine unbekannte externe 5-V-Einspeisung und USB anschließen, wenn nicht sichergestellt ist, dass die konkrete Hardware das gefahrlos unterstützt.
 
 ### ESP32 ↔ RS485-Modul
 
@@ -116,15 +152,11 @@ Bei einem üblichen **T568B**-Patchkabel entsprechen diese Farben:
 
 Damit lässt sich aus dem funktionierenden Aufbau sicher festhalten, dass **weiß/orange und orange das verwendete differentielle RS485-Leitungspaar bilden**. Welche dieser beiden Leitungen am konkret verwendeten RS485-Modul als **A** bzw. **B** beschriftet ist, wurde beim Aufbau nicht dokumentiert und ist auf den vorhandenen Fotos nicht zuverlässig genug abzulesen. Deshalb wird hier bewusst keine möglicherweise falsche A/B-Farbzuordnung behauptet.
 
-Die **blaue Ader** ist im realen Aufbau ebenfalls angeschlossen. Aufgrund der bekannten RJ45-Pinposition und des Aufbaus liegt eine Verwendung im Zusammenhang mit der Versorgung nahe; die exakte elektrische Zuordnung wurde beim Aufbau jedoch nicht separat vermessen bzw. dokumentiert. Auch hier soll die README deshalb nicht mehr behaupten, als anhand des funktionierenden Geräts nachvollziehbar ist.
+Die **blaue Ader** ist im realen Aufbau ebenfalls angeschlossen. Ihre exakte elektrische Zuordnung wurde beim Aufbau jedoch nicht separat vermessen bzw. dokumentiert. Die Dokumentation behauptet deshalb bewusst nicht, ob sie GND oder eine andere Funktion führt.
 
 > **Wichtig:** Nicht einfach beliebige drei Adern nach Farbe anschließen. Patchkabel können anders belegt sein. Entscheidend sind die tatsächlichen RJ45-Pins. Wer den Aufbau nachbaut, sollte die Adern des verwendeten Kabels mit einem Multimeter/Durchgangsprüfer vom RJ45-Stecker bis zum abgeschnittenen Ende identifizieren.
 
-> **RS485 A/B:** Die Bezeichnungen A und B sind bei RS485-Adaptern leider nicht immer einheitlich. Wenn die komplette Schaltung korrekt aufgebaut ist, aber keine Modbus-Kommunikation zustande kommt, kann eine vertauschte Datenleitung die Ursache sein. In diesem Fall ausschließlich die beiden RS485-Datenleitungen gegeneinander tauschen – niemals eine vermutete Versorgungsleitung probeweise mit einer Datenleitung verbinden.
-
-### Was wir über die TTGO-Seite sicher wissen
-
-Die Patchkabel-Adern gehen im gezeigten Aufbau zunächst auf die interne Verdrahtung/RS485-Platine. Die Verbindung zwischen **TTGO und RS485-Transceiver** ist dagegen eindeutig durch die YAML vorgegeben: TX = GPIO27, RX = GPIO26 und DE/RE = GPIO25. Deshalb ist es für einen Nachbau sinnvoller, sich auf diese dokumentierten Signale und die Beschriftung des eigenen RS485-Moduls zu stützen, statt die internen Kabelfarben des Prototyps zu kopieren.
+> **RS485 A/B:** Die Bezeichnungen A und B sind bei RS485-Adaptern leider nicht immer einheitlich. Wenn die komplette Schaltung korrekt aufgebaut ist, aber keine Modbus-Kommunikation zustande kommt, kann eine vertauschte Datenleitung die Ursache sein. In diesem Fall ausschließlich die beiden RS485-Datenleitungen gegeneinander tauschen – niemals die dritte Leitung probeweise mit einer Datenleitung verbinden.
 
 Referenzparameter:
 
@@ -140,7 +172,7 @@ Modbus Slave-ID: 1
 
 <p align="center"><img src="images/case_open.jpg" alt="Innenansicht des Controllers" width="900"></p>
 
-Das TTGO T-Display und das RS485-Interface sind gemeinsam im Gehäuse untergebracht. Die Kabel werden seitlich über Kabelverschraubungen herausgeführt.
+Das TTGO T-Display, die grüne Trägerplatine und das RS485-Interface sind gemeinsam im Gehäuse untergebracht. Die Kabel werden seitlich über Kabelverschraubungen herausgeführt.
 
 ## Display und die beiden Tasten
 
@@ -157,8 +189,6 @@ Die vorgesehene Funktion der beiden kleinen TTGO-Taster ist:
 - Bei **0 W** wird die Leistungsausgabe gestoppt.
 - Der Bereich ist in der Firmware auf **−2500 W bis +2500 W** begrenzt.
 - Die Tastensteuerung wird nur verarbeitet, wenn **Venus Master (RS485 Enable)** aktiv ist.
-
-Beispiel gemäß aktueller Implementierung: Ausgehend von 0 W würde dreimal links **+300 W Laden** auswählen. Dreimal rechts würde wieder zu 0 W führen; weitere Tastendrücke nach rechts würden in den Entladebereich wechseln.
 
 ## ESPHome Installation
 
