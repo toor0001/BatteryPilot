@@ -56,13 +56,49 @@ The actual **Node-RED energy-management logic is intentionally not part of this 
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, Wi-Fi and display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 transceiver module | Modbus/RS485 interface | Check 3.3 V logic compatibility | [Amazon*](https://link.amazon/B0evMwitV) |
-| USB power supply + cable | TTGO power supply | Stable 5 V supply recommended | [Amazon*](https://link.amazon/B0cxu0tlI) |
+| 5 V power supply | Permanent controller supply | In the reference build +5 V and GND are fed to the green perfboard/carrier board; Micro-USB is not the normal installed power input | [Amazon*](https://link.amazon/B0cxu0tlI) |
 | Standard Ethernet patch cable | Connection to Marstek | One end is cut off; blue, white/orange and orange are used in the shown build | any suitable cable |
 | 3D-printed enclosure | Mechanical protection | Body + Cover STL included | [STL folder](enclosure/STL/) |
 
 \* **Affiliate notice:** Links marked with `*` may be affiliate links. If you buy something through them, the project owner may receive a small commission. Your price does not change.
 
 ## Wiring
+
+### Complete overview
+
+The finished controller has two separate paths: **power** and **RS485 communication**.
+
+```text
+230 V AC
+   │
+   ▼
+5 V power supply
+   │  +5 V / GND
+   ▼
+green perfboard / carrier board
+   │
+   ├──► TTGO T-Display
+   └──► RS485 electronics / common supply
+
+TTGO T-Display
+   │ GPIO27 / GPIO26 / GPIO25 / GND
+   ▼
+RS485 transceiver
+   │ A / B / reference conductor
+   ▼
+cut Ethernet patch cable
+   │
+   ▼
+Marstek Venus RS485 port
+```
+
+### Power: supply → carrier board → TTGO
+
+In the **permanently installed reference build**, the TTGO is **not powered through its Micro-USB connector**. The external power supply provides 5 V. **+5 V and GND are connected to the green perfboard/carrier board** on which the TTGO is soldered. The controller is powered through this board, which also carries the internal wiring to the RS485 interface.
+
+A USB cable visible on some project/test photos was used only for **testing/flashing** and is not the normal power connection of the installed controller.
+
+> **Important:** Use a regulated 5 V supply and verify voltage and polarity before connection. Do not simultaneously connect an unknown external 5 V feed and USB unless you have verified that your particular hardware safely supports it.
 
 ### ESP32 ↔ RS485 module
 
@@ -116,15 +152,11 @@ For a normally wired **T568B** patch cable these colours correspond to:
 
 The working installation therefore confirms that **white/orange and orange form the RS485 data pair used by this build**. The original build did not record which of those two wires is labelled **A** and which is labelled **B** on the particular RS485 module, and the available photographs are not clear enough to make that assignment safely. This README therefore deliberately avoids inventing an A/B colour mapping.
 
-The **blue conductor** is also connected in the working build. Its RJ45 pin position and the physical arrangement suggest a supply-related role, but its exact electrical assignment was not separately measured/documented during construction. Again, the documentation intentionally does not claim more than can be reconstructed from the working hardware.
+The **blue conductor** is also connected in the working build. Its exact electrical assignment was not separately measured/documented during construction, so the documentation deliberately does not claim whether it is GND or another function.
 
 > **Important:** Do not blindly connect three wires by colour. Patch cables may use a different wiring scheme. The RJ45 pin numbers are what matter. For a reproduction, identify the conductors from the RJ45 plug to the cut end with a multimeter/continuity tester.
 
-> **RS485 A/B:** A and B naming is unfortunately not consistent between all RS485 adapters. If everything else is wired correctly but Modbus communication does not work, swapped differential data lines may be the reason. In that case swap only the two RS485 data conductors. Never experimentally swap a suspected supply conductor with a data conductor.
-
-### What is known reliably on the TTGO side
-
-In the prototype the patch-cable conductors first enter the internal wiring/RS485 board. The **TTGO-to-RS485-transceiver** signals, however, are unambiguous because they are defined in the YAML: TX = GPIO27, RX = GPIO26 and DE/RE = GPIO25. For a reproduction it is therefore better to follow these documented signals and the markings on your own RS485 module than to copy every internal prototype wire colour.
+> **RS485 A/B:** A and B naming is unfortunately not consistent between all RS485 adapters. If everything else is wired correctly but Modbus communication does not work, swapped differential data lines may be the reason. In that case swap only the two RS485 data conductors. Never experimentally swap the third conductor with a data conductor.
 
 Reference parameters:
 
@@ -140,7 +172,7 @@ Modbus slave ID: 1
 
 <p align="center"><img src="images/case_open.jpg" alt="Inside the TTGO controller" width="900"></p>
 
-The TTGO T-Display and RS485 interface are housed together. The cables leave the enclosure through side cable glands.
+The TTGO T-Display, green carrier board and RS485 interface are housed together. The cables leave the enclosure through side cable glands.
 
 ## Display and the two buttons
 
@@ -157,8 +189,6 @@ The intended function of the two small TTGO buttons is:
 - At **0 W** output is stopped.
 - Firmware limits the local setpoint to **−2500 W … +2500 W**.
 - Button commands are processed only while **Venus Master (RS485 Enable)** is enabled.
-
-According to the current implementation, starting at 0 W and pressing left three times would select **+300 W charging**. Pressing right three times would return to 0 W; further right presses would move into discharge mode.
 
 ## ESPHome installation
 
