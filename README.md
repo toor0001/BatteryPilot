@@ -178,6 +178,12 @@ If this project helped you and you want to support further development:
 
 <a href="https://paypal.me/toor0001"><img src="assets/paypal-support-en.svg" alt="Buy me a coffee via PayPal" width="430"></a>
 
+## Development note
+
+This project was developed in a collaborative **vibe-coding workflow** using **ChatGPT** and **OpenAI Codex** for code generation, review, debugging and documentation.
+
+The hardware design, integration decisions, practical testing and final responsibility for the project remain with the project author.
+
 ## Safety
 
 This software can command battery charge and discharge power. Use it only if you understand your installation and battery limits. Keep the manufacturer's protection systems enabled and test changes at low power first.
