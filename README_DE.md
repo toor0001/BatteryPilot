@@ -37,14 +37,16 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | [Amazon*](https://link.amazon/B0evMwitV) |
 | USB-Netzteil + USB-Kabel | Versorgung des TTGO | stabile 5-V-Versorgung empfohlen | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten und die benötigten Adern werden direkt aufgelegt | vorhanden / beliebig |
-| 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Lid als STL enthalten | [STL-Ordner](enclosure/STL/) |
+| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten; im gezeigten Aufbau werden blau, weiß/orange und orange genutzt | vorhanden / beliebig |
+| 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Cover als STL enthalten | [STL-Ordner](enclosure/STL/) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
 
 ## Verdrahtung
 
 ### ESP32 ↔ RS485-Modul
+
+Diese Zuordnung ist durch die aktuelle ESPHome-Konfiguration festgelegt:
 
 | TTGO / ESP32 | RS485-Modul | Funktion |
 |---|---|---|
@@ -70,28 +72,43 @@ modbus:
   flow_control_pin: GPIO25
 ```
 
-### Marstek Venus ↔ RS485-Modul mit aufgetrenntem Patchkabel
+### Marstek Venus ↔ Controller: tatsächlich verwendetes Patchkabel
 
-Für den Referenzaufbau wurde **kein spezielles Marstek-RS485-Kabel** verwendet. Ein normales Ethernet-Patchkabel wurde an einer Seite abgeschnitten. Der RJ45-Stecker bleibt auf der Marstek-Seite erhalten; die einzelnen Adern am abgeschnittenen Ende werden direkt mit dem RS485-Modul verbunden.
+Für den funktionierenden Referenzaufbau wurde **kein spezielles Marstek-RS485-Kabel** verwendet. Stattdessen wurde ein normales Ethernet-Patchkabel an einer Seite abgeschnitten. Der RJ45-Stecker bleibt am Marstek Venus eingesteckt; am anderen Ende werden nur die benötigten Einzeladern verwendet.
 
-Bei einem üblichen **T568B-Patchkabel** ergibt sich folgende Belegung:
+Am real aufgebauten Gerät sind anhand des Aufbaus und der Fotos drei Adern eindeutig nachvollziehbar:
 
-| RJ45-Pin | typische T568B-Aderfarbe | Verwendung im Referenzaufbau |
-|---:|---|---|
-| 1 | weiß/orange | **RS485 A** |
-| 2 | orange | **RS485 B** |
-| 3 | weiß/grün | nicht verwendet |
-| 4 | blau | +5 V vom Marstek, hier **nicht verwendet** |
-| 5 | weiß/blau | +5 V vom Marstek, hier **nicht verwendet** |
-| 6 | grün | nicht verwendet |
-| 7 | weiß/braun | GND |
-| 8 | braun | GND |
+- **blau**
+- **weiß/orange**
+- **orange**
 
-Der TTGO wird in diesem Aufbau separat über USB versorgt. Deshalb werden die +5-V-Adern des Marstek an Pin 4/5 **nicht benötigt**. Für RS485 werden A, B und eine gemeinsame Masse verwendet.
+Am kleinen **3-poligen Steckverbinder im Controller** sind sie, so wie der Stecker auf den Projektfotos zu sehen ist, in dieser Reihenfolge aufgelegt:
 
-> **Wichtig:** Die Bezeichnung **A/B ist bei RS485 nicht herstellerübergreifend eindeutig**. Es gibt Dokumentationen und Adapter, bei denen A und B genau anders herum bezeichnet sind. Wenn bei ansonsten korrekter Verdrahtung keine Modbus-Kommunikation zustande kommt, dürfen **nur die beiden Signalleitungen A und B vertauscht** werden. +5 V und GND niemals probeweise tauschen.
+```text
+oben     → blau
+2. Pin   → weiß/orange
+3. Pin   → orange
+```
 
-> **Achtung bei Patchkabeln:** Die oben genannten Farben gelten für T568B. Nicht blind nach Farben anschließen. Im Zweifel die Pin-Nummern am RJ45-Stecker mit einem Durchgangsprüfer/Multimeter nachvollziehen. Die Pin-Nummer ist entscheidend, nicht die Aderfarbe.
+Bei einem üblichen **T568B**-Patchkabel entsprechen diese Farben:
+
+| Aderfarbe | T568B RJ45-Pin | Einordnung |
+|---|---:|---|
+| weiß/orange | 1 | eine Leitung des RS485-Datenpaares |
+| orange | 2 | zweite Leitung des RS485-Datenpaares |
+| blau | 4 | dritte im realen Aufbau verwendete Leitung |
+
+Damit lässt sich aus dem funktionierenden Aufbau sicher festhalten, dass **weiß/orange und orange das verwendete differentielle RS485-Leitungspaar bilden**. Welche dieser beiden Leitungen am konkret verwendeten RS485-Modul als **A** bzw. **B** beschriftet ist, wurde beim Aufbau nicht dokumentiert und ist auf den vorhandenen Fotos nicht zuverlässig genug abzulesen. Deshalb wird hier bewusst keine möglicherweise falsche A/B-Farbzuordnung behauptet.
+
+Die **blaue Ader** ist im realen Aufbau ebenfalls angeschlossen. Aufgrund der bekannten RJ45-Pinposition und des Aufbaus liegt eine Verwendung im Zusammenhang mit der Versorgung nahe; die exakte elektrische Zuordnung wurde beim Aufbau jedoch nicht separat vermessen bzw. dokumentiert. Auch hier soll die README deshalb nicht mehr behaupten, als anhand des funktionierenden Geräts nachvollziehbar ist.
+
+> **Wichtig:** Nicht einfach beliebige drei Adern nach Farbe anschließen. Patchkabel können anders belegt sein. Entscheidend sind die tatsächlichen RJ45-Pins. Wer den Aufbau nachbaut, sollte die Adern des verwendeten Kabels mit einem Multimeter/Durchgangsprüfer vom RJ45-Stecker bis zum abgeschnittenen Ende identifizieren.
+
+> **RS485 A/B:** Die Bezeichnungen A und B sind bei RS485-Adaptern leider nicht immer einheitlich. Wenn die komplette Schaltung korrekt aufgebaut ist, aber keine Modbus-Kommunikation zustande kommt, kann eine vertauschte Datenleitung die Ursache sein. In diesem Fall ausschließlich die beiden RS485-Datenleitungen gegeneinander tauschen – niemals eine vermutete Versorgungsleitung probeweise mit einer Datenleitung verbinden.
+
+### Was wir über die TTGO-Seite sicher wissen
+
+Die Patchkabel-Adern gehen im gezeigten Aufbau zunächst auf die interne Verdrahtung/RS485-Platine. Die Verbindung zwischen **TTGO und RS485-Transceiver** ist dagegen eindeutig durch die YAML vorgegeben: TX = GPIO27, RX = GPIO26 und DE/RE = GPIO25. Deshalb ist es für einen Nachbau sinnvoller, sich auf diese dokumentierten Signale und die Beschriftung des eigenen RS485-Moduls zu stützen, statt die internen Kabelfarben des Prototyps zu kopieren.
 
 Referenzparameter:
 
@@ -184,7 +201,7 @@ Eine ausführliche Erklärung steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPL
 Das Gehäuse besteht aus zwei druckbaren Teilen:
 
 - [`Body.stl`](enclosure/STL/Body.stl) – Gehäusekörper
-- [`Lid.stl`](enclosure/STL/Lid.stl) – Frontdeckel mit Display-, Tasten- und Lüftungsöffnungen
+- [`Cover.stl`](enclosure/STL/Cover.stl) – Frontdeckel mit Display-, Tasten- und Lüftungsöffnungen
 
 Die Dateien können direkt aus dem Repository heruntergeladen und im Slicer geöffnet werden. Das gezeigte Gehäuse nimmt TTGO, RS485-Interface und Verdrahtung gemeinsam auf.
 
