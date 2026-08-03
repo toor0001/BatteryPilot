@@ -37,8 +37,7 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | [Amazon*](https://link.amazon/B0evMwitV) |
 | USB-Netzteil + USB-Kabel | Versorgung des TTGO | stabile 5-V-Versorgung empfohlen | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| RS485-Leitung | Verbindung zum Venus | verdrilltes A/B-Paar empfohlen | Link folgt |
-| passender Stecker für den Marstek-RS485-Port | Anschluss am Speicher | Pinbelegung am eigenen Gerät prüfen | Link folgt |
+| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten und die benötigten Adern werden direkt aufgelegt | vorhanden / beliebig |
 | 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Lid als STL enthalten | [STL-Ordner](enclosure/STL/) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
@@ -71,9 +70,30 @@ modbus:
   flow_control_pin: GPIO25
 ```
 
-### RS485 ↔ Marstek Venus
+### Marstek Venus ↔ RS485-Modul mit aufgetrenntem Patchkabel
 
-Mindestens die differentiellen Leitungen **A** und **B** werden verbunden. Je nach Modul bzw. Aufbau kann zusätzlich GND sinnvoll oder erforderlich sein. Die Bezeichnungen A/B sind zwischen RS485-Modul-Herstellern nicht immer einheitlich; bei komplett ausbleibender Kommunikation deshalb auch vertauschtes A/B prüfen.
+Für den Referenzaufbau wurde **kein spezielles Marstek-RS485-Kabel** verwendet. Ein normales Ethernet-Patchkabel wurde an einer Seite abgeschnitten. Der RJ45-Stecker bleibt auf der Marstek-Seite erhalten; die einzelnen Adern am abgeschnittenen Ende werden direkt mit dem RS485-Modul verbunden.
+
+Bei einem üblichen **T568B-Patchkabel** ergibt sich folgende Belegung:
+
+| RJ45-Pin | typische T568B-Aderfarbe | Verwendung im Referenzaufbau |
+|---:|---|---|
+| 1 | weiß/orange | **RS485 A** |
+| 2 | orange | **RS485 B** |
+| 3 | weiß/grün | nicht verwendet |
+| 4 | blau | +5 V vom Marstek, hier **nicht verwendet** |
+| 5 | weiß/blau | +5 V vom Marstek, hier **nicht verwendet** |
+| 6 | grün | nicht verwendet |
+| 7 | weiß/braun | GND |
+| 8 | braun | GND |
+
+Der TTGO wird in diesem Aufbau separat über USB versorgt. Deshalb werden die +5-V-Adern des Marstek an Pin 4/5 **nicht benötigt**. Für RS485 werden A, B und eine gemeinsame Masse verwendet.
+
+> **Wichtig:** Die Bezeichnung **A/B ist bei RS485 nicht herstellerübergreifend eindeutig**. Es gibt Dokumentationen und Adapter, bei denen A und B genau anders herum bezeichnet sind. Wenn bei ansonsten korrekter Verdrahtung keine Modbus-Kommunikation zustande kommt, dürfen **nur die beiden Signalleitungen A und B vertauscht** werden. +5 V und GND niemals probeweise tauschen.
+
+> **Achtung bei Patchkabeln:** Die oben genannten Farben gelten für T568B. Nicht blind nach Farben anschließen. Im Zweifel die Pin-Nummern am RJ45-Stecker mit einem Durchgangsprüfer/Multimeter nachvollziehen. Die Pin-Nummer ist entscheidend, nicht die Aderfarbe.
+
+Referenzparameter:
 
 ```text
 Baudrate: 115200
