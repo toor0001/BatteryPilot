@@ -2,13 +2,13 @@
 
 Local control and monitoring of a **Marstek Venus** battery using a **LILYGO/TTGO T-Display**, **ESPHome**, **RS485/Modbus RTU** and **Home Assistant**.
 
+[🇩🇪 Deutsche README](README_DE.md)
+
 The ESP32 talks directly to the Venus over RS485. No cloud connection is required for the control path. The TTGO display shows the most important battery information locally, while Home Assistant exposes sensors, diagnostics and charge/discharge setpoints for automations or Node-RED.
 
-> **Status:** working project / reference implementation. Tested by the project author with a Marstek Venus E Gen3 and firmware V148. Marstek firmware changes can affect Modbus behaviour, so read the firmware notes below before updating a battery.
+> **Status:** working project / reference implementation. Tested with a Marstek Venus E Gen3 and firmware V148. Marstek firmware changes can affect Modbus behaviour, so verify control after battery firmware updates.
 
 ## Why this project?
-
-There are already excellent Marstek Modbus projects, but this build combines the pieces into one small local device:
 
 - direct **RS485 / Modbus RTU** connection to the battery
 - **ESPHome** firmware
@@ -20,37 +20,24 @@ There are already excellent Marstek Modbus projects, but this build combines the
 - diagnostics for requested vs. measured battery power
 - physical buttons on the TTGO for local setpoint control
 - optional 3D-printed enclosure
+- no cloud required for the local control path
 
-## Repository layout
+## Hardware / parts list
 
-```text
-.
-├── README.md
-├── esphome/
-│   ├── marstek-venus-ttgo.yaml
-│   └── secrets.example.yaml
-├── docs/
-│   ├── CODE_EXPLAINED.md
-│   └── HARDWARE.md
-└── enclosure/
-    └── STL/
-        └── README.md
-```
+| Part | Purpose | Notes | Link |
+|---|---|---|---|
+| LILYGO / TTGO T-Display ESP32 | Controller, Wi-Fi and local display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
+| TTL ↔ RS485 transceiver module | Physical Modbus/RS485 interface | Check 3.3 V logic compatibility | link follows |
+| USB power supply + cable | TTGO power supply | Stable 5 V supply recommended | [Amazon*](https://link.amazon/B0cxu0tlI) |
+| RS485 cable | Connection to Venus | Twisted A/B pair recommended | link follows |
+| Suitable connector for Marstek RS485 port | Battery connection | Verify pinout on your device | link follows |
+| 3D-printed enclosure | Mechanical protection | STL files in `enclosure/STL/` | included |
 
-## Hardware
+\* **Affiliate notice:** Links marked with `*` may be affiliate links. If you buy something through them, the project owner may receive a small commission. Your price does not change.
 
-The reference build uses:
+## Wiring
 
-- **LILYGO / TTGO T-Display ESP32** with 135 × 240 ST7789 display
-- **3.3 V compatible TTL ↔ RS485 transceiver/module**
-- Marstek Venus battery with RS485 interface
-- suitable RS485 cable/connector for the Venus
-- USB power supply/cable for the TTGO
-- optional 3D-printed enclosure
-
-See [`docs/HARDWARE.md`](docs/HARDWARE.md) for the wiring and important electrical notes.
-
-## Wiring used by the ESPHome configuration
+### ESP32 ↔ RS485 module
 
 | TTGO / ESP32 | RS485 module | Function |
 |---|---|---|
@@ -58,15 +45,60 @@ See [`docs/HARDWARE.md`](docs/HARDWARE.md) for the wiring and important electric
 | GPIO26 | RO / RX | UART receive |
 | GPIO25 | DE + /RE | RS485 direction control |
 | GND | GND | common ground |
-| supply | VCC | according to your RS485 module specification |
+| VCC | VCC | according to your RS485 module specification |
 
-RS485 **A/B** then connects to the Marstek RS485 bus. If communication does not work, check your module documentation first; A/B naming is unfortunately not consistent between all vendors.
+The relevant ESPHome configuration is:
+
+```yaml
+uart:
+  id: uart_rs485
+  tx_pin: GPIO27
+  rx_pin: GPIO26
+  baud_rate: 115200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+modbus:
+  id: modbus1
+  uart_id: uart_rs485
+  flow_control_pin: GPIO25
+```
+
+### RS485 ↔ Marstek Venus
+
+At least the differential **A** and **B** lines are connected. Depending on the installation/module, a common GND can also be useful or required.
+
+> A/B naming is unfortunately not consistent between all RS485 module vendors. If there is no communication at all, swapped A/B lines are one of the first things to check.
+
+Reference bus settings:
+
+```text
+Baud rate: 115200
+Data bits: 8
+Parity: NONE
+Stop bits: 1
+Modbus slave ID: 1
+```
+
+### TTGO T-Display pins
+
+| Function | GPIO |
+|---|---:|
+| SPI CLK | 18 |
+| SPI MOSI | 19 |
+| TFT CS | 5 |
+| TFT DC | 16 |
+| TFT RESET | 23 |
+| Backlight PWM | 4 |
+| left button | 0 |
+| right button | 35 |
 
 ## ESPHome installation
 
 1. Copy [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) into your ESPHome configuration directory.
 2. Create/update `secrets.yaml` using [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml).
-3. Check the UART and RS485 pins against your hardware.
+3. Check UART and RS485 pins against your hardware.
 4. Validate the configuration in ESPHome.
 5. Flash the TTGO.
 6. Add the ESPHome device to Home Assistant.
@@ -88,14 +120,25 @@ The configuration exposes, among others:
 - Venus Set Discharge Power W
 - Venus Master (RS485 Enable)
 - Venus NOT-AUS
+- TTGO OTA Quiet Mode
 - TTGO Restart
 - TTGO WiFi RSSI
 
-The low-level control registers themselves are intentionally kept `internal: true` where possible.
+## Why is there an OTA Quiet Mode?
+
+The TTGO is sometimes installed where Wi-Fi reception is weak. In that situation the ESP32 has to spend more effort maintaining the wireless connection, and OTA updates can become less reliable.
+
+**TTGO OTA Quiet Mode** switches off the display backlight so the display becomes a non-essential load during troubleshooting or OTA updates. The intention is to give the ESP32 the best possible conditions for Wi-Fi/OTA operation and reduce unnecessary power/load while the radio connection is marginal.
+
+It is particularly useful when:
+
+- the TTGO has weak Wi-Fi reception,
+- an OTA update is unstable,
+- you want to remove the display as an unnecessary load while diagnosing connectivity.
+
+The mode does **not** disable the Marstek control logic. It is a service/troubleshooting mode for the TTGO itself.
 
 ## Control registers
-
-The current Gen3 control path uses these holding registers:
 
 | Register | Purpose | Values used |
 |---:|---|---|
@@ -107,38 +150,49 @@ The current Gen3 control path uses these holding registers:
 | `44002` | Max charge power | readback |
 | `44003` | Max discharge power | readback |
 
-### Important firmware behaviour
+### Firmware note
 
-Marstek firmware can disable remote/RS485 control when the operating mode is changed from the app or via the user-work-mode register. The project therefore keeps the RS485 control state visible in diagnostics. A healthy discharge heartbeat can look like:
+Marstek firmware can disable remote/RS485 control when the operating mode is changed from the app or via the user-work-mode register. The project therefore keeps the RS485 control state visible in diagnostics.
+
+A healthy discharge heartbeat can look like:
 
 ```text
-Heartbeat: ... rs485=21930 ctrl=2 dis_reg=700 ...
+Heartbeat: ... req=-700 meas=797 rs485=21930 ctrl=2 dis_reg=700 ...
 ```
 
-If the requested power is present in `42021` but the battery stays at 0 W, check `42000` first.
-
-Do **not** assume that a firmware update preserves all Modbus behaviour. After a battery firmware update, verify readback and control manually before re-enabling unattended automations.
+If the requested power is present but the battery stays at 0 W, check `42000` / `rs485` first.
 
 ## What the firmware does
 
-The YAML is deliberately more defensive than a minimal Modbus example. It includes:
+The YAML includes:
 
 - separate fast and slow Modbus polling controllers
 - AC-power sanity checking and median-of-3 filtering
 - SoC jump rejection
 - request/ack tracking
 - under-delivery diagnostics
-- a Modbus freshness sensor
+- Modbus freshness monitoring
 - one-shot RS485 recovery if data becomes stale
 - automatic TTGO restart if recovery fails
 - emergency stop logic
 - local TFT status screen and button control
+- RS485 control-code readback in the heartbeat
 
 A section-by-section explanation is in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 
+## Before first use
+
+1. Check RS485 module supply voltage and logic levels.
+2. Check GND and A/B wiring.
+3. Start without automatic charge/discharge automation.
+4. Confirm `Venus Modbus OK`.
+5. Check SoC and power values for plausibility.
+6. Test small setpoints first, e.g. 100–300 W.
+7. Only then enable unattended automation.
+
 ## 3D-printed enclosure
 
-A directory for printable enclosure files is already prepared under [`enclosure/STL/`](enclosure/STL/). The final STL files can be added there without changing the documentation structure.
+STL files are located under [`enclosure/STL/`](enclosure/STL/).
 
 ## Credits / prior work
 
@@ -146,13 +200,17 @@ This project stands on work from the Marstek community. In particular:
 
 - **ViperRNMC – marstek_venus_modbus**  
   https://github.com/ViperRNMC/marstek_venus_modbus  
-  Important reference for current Marstek Venus Modbus register definitions and Home Assistant integration behaviour.
+  Important reference for Marstek Venus Modbus register definitions and Home Assistant integration behaviour.
 
 - **Superduper1969 – MarstekVenus-LilygoRS485**  
   https://github.com/Superduper1969/MarstekVenus-LilygoRS485  
-  Excellent ESPHome/LILYGO RS485 reference implementation and inspiration for a direct ESP-based Marstek interface.
+  ESPHome/LILYGO RS485 reference implementation and inspiration for a direct ESP-based Marstek interface.
 
-Please also follow the upstream credits in those projects; the Marstek register knowledge is community work built over time.
+## Support this project
+
+If this project helped you and you want to support further development:
+
+[![Support via PayPal](https://img.shields.io/badge/Support%20via-PayPal-0070BA?logo=paypal&logoColor=white)](https://paypal.me/toor0001)
 
 ## Safety
 
