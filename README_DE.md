@@ -8,6 +8,14 @@ Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung
 
 > **Status:** funktionierendes Projekt / Referenzaufbau. Getestet mit einem Marstek Venus E Gen3 und Firmware V148. Firmwareupdates von Marstek können das Modbus-Verhalten verändern; deshalb nach Updates die Steuerung immer erneut prüfen.
 
+## Der fertige Aufbau
+
+![Marstek Venus mit TTGO-RS485-Steuerung](images/wall_setup.jpg)
+
+Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt die lokale RS485-Kommunikation.
+
+<p align="center"><img src="images/case.jpg" alt="3D-gedrucktes TTGO Gehäuse" width="520"></p>
+
 ## Warum dieses Projekt?
 
 - direkte **RS485 / Modbus RTU** Verbindung zum Speicher
@@ -31,7 +39,7 @@ Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung
 | USB-Netzteil + USB-Kabel | Versorgung des TTGO | stabile 5-V-Versorgung empfohlen | [Amazon*](https://link.amazon/B0cxu0tlI) |
 | RS485-Leitung | Verbindung zum Venus | verdrilltes A/B-Paar empfohlen | Link folgt |
 | passender Stecker für den Marstek-RS485-Port | Anschluss am Speicher | Pinbelegung am eigenen Gerät prüfen | Link folgt |
-| 3D-gedrucktes Gehäuse | mechanischer Schutz | STL-Dateien unter `enclosure/STL/` | enthalten |
+| 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Lid als STL enthalten | [STL-Ordner](enclosure/STL/) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
 
@@ -46,8 +54,6 @@ Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung
 | GPIO25 | DE + /RE | RS485 Sende-/Empfangsumschaltung |
 | GND | GND | gemeinsame Masse |
 | VCC | VCC | passend zum verwendeten RS485-Modul |
-
-Im ESPHome-YAML:
 
 ```yaml
 uart:
@@ -67,11 +73,7 @@ modbus:
 
 ### RS485 ↔ Marstek Venus
 
-Mindestens die beiden differentiellen Leitungen **A** und **B** werden verbunden. Je nach Modul bzw. Aufbau kann zusätzlich GND sinnvoll oder erforderlich sein.
-
-> Die Bezeichnungen A/B sind zwischen RS485-Modul-Herstellern leider nicht immer einheitlich. Wenn überhaupt keine Kommunikation zustande kommt, ist vertauschtes A/B einer der ersten Prüfpunkte.
-
-Referenzparameter:
+Mindestens die differentiellen Leitungen **A** und **B** werden verbunden. Je nach Modul bzw. Aufbau kann zusätzlich GND sinnvoll oder erforderlich sein. Die Bezeichnungen A/B sind zwischen RS485-Modul-Herstellern nicht immer einheitlich; bei komplett ausbleibender Kommunikation deshalb auch vertauschtes A/B prüfen.
 
 ```text
 Baudrate: 115200
@@ -81,18 +83,27 @@ Stopbits: 1
 Modbus Slave-ID: 1
 ```
 
-### TTGO T-Display Pins
+### Innenaufbau
 
-| Funktion | GPIO |
-|---|---:|
-| SPI CLK | 18 |
-| SPI MOSI | 19 |
-| TFT CS | 5 |
-| TFT DC | 16 |
-| TFT RESET | 23 |
-| Backlight PWM | 4 |
-| linke Taste | 0 |
-| rechte Taste | 35 |
+![Innenansicht des Controllers](images/case_open.jpg)
+
+Das TTGO T-Display und das RS485-Interface sind gemeinsam im Gehäuse untergebracht. Die Kabel werden seitlich über Kabelverschraubungen herausgeführt.
+
+## Display und die beiden Tasten
+
+<p align="center"><img src="images/display.jpg" alt="TTGO Display im Betrieb" width="620"></p>
+
+Das Display zeigt unter anderem den aktuellen Sollwert (**SET**), den Ladezustand (**SOC**), die aktuelle Leistung sowie Kommunikations- und WLAN-Status.
+
+Die beiden kleinen Taster am TTGO erlauben eine direkte lokale Leistungssteuerung, auch ohne Home Assistant zu öffnen:
+
+- **Linke Taste (GPIO0):** erhöht den Sollwert bei jedem Tastendruck um **100 W**. Positive Sollwerte bedeuten **Laden**.
+- **Rechte Taste (GPIO35):** verringert den Sollwert bei jedem Tastendruck um **100 W**. Negative Sollwerte bedeuten **Entladen**.
+- Bei **0 W** wird die Leistungsausgabe gestoppt.
+- Der Bereich ist in der Firmware auf **−2500 W bis +2500 W** begrenzt.
+- Die Tastensteuerung funktioniert nur, wenn **Venus Master (RS485 Enable)** aktiv ist.
+
+Beispiel: Ausgehend von 0 W führt dreimal links zu **+300 W Laden**. Dreimal rechts führt wieder zu 0 W; weitere Tastendrücke nach rechts wechseln in den Entladebereich.
 
 ## ESPHome Installation
 
@@ -104,39 +115,19 @@ Modbus Slave-ID: 1
 6. ESPHome-Gerät in Home Assistant hinzufügen.
 7. Vor Automationen zuerst prüfen, ob **Venus Modbus OK** aktiv ist.
 
-## Home-Assistant-Entitäten
+## Home Assistant
 
-Unter anderem werden bereitgestellt:
+![ESPHome-Gerät in Home Assistant](images/HA%20Screenshot.jpg)
 
-- Venus SOC
-- Venus AC Power
-- Venus AC Power W Stable
-- Venus Max Charge Power
-- Venus Max Discharge Power
-- Venus Charge To SoC
-- Zell-/Innentemperaturen
-- Venus Modbus OK
-- Venus Set Charge Power W
-- Venus Set Discharge Power W
-- Venus Master (RS485 Enable)
-- Venus NOT-AUS
-- TTGO OTA Quiet Mode
-- TTGO Restart
-- TTGO WiFi RSSI
+Unter anderem werden bereitgestellt: Venus SOC, AC Power, Stable Power, Max Charge/Discharge Power, Temperaturen, Modbus OK, Lade-/Entlade-Sollwerte, RS485 Master, NOT-AUS, OTA Quiet Mode, Restart und WiFi RSSI.
 
 ## Warum gibt es den OTA Quiet Mode?
 
-Der TTGO kann an einem Ort mit schwachem WLAN-Empfang betrieben werden. Gerade bei OTA-Updates oder bei der Fehlersuche möchten wir dem ESP32 möglichst viel Reserve für WLAN und die eigentliche Kommunikation geben.
+Der TTGO kann an einem Ort mit schwachem WLAN-Empfang betrieben werden. Gerade bei OTA-Updates oder bei der Fehlersuche möchten wir dem ESP32 möglichst viel Reserve für WLAN und Kommunikation geben.
 
-Das Display verursacht dabei zwei Arten zusätzlicher Last: Das regelmäßige Zeichnen und Aktualisieren der Anzeige benötigt Rechenzeit und SPI-Kommunikation, während die Hintergrundbeleuchtung zusätzlich Strom aus der Versorgung benötigt. Der **TTGO OTA Quiet Mode** dient deshalb dazu, das Display während solcher Situationen möglichst aus dem Weg zu nehmen und unnötige Last zu reduzieren. In der aktuellen Konfiguration wird dabei die Hintergrundbeleuchtung abgeschaltet; dadurch sinkt insbesondere der Strombedarf des Displays und die Versorgung hat mehr Reserve für ESP32 und WLAN.
+Das Display erzeugt zusätzliche Last auf zwei Ebenen: Das regelmäßige Zeichnen und Aktualisieren benötigt Rechenzeit und SPI-Kommunikation; die Hintergrundbeleuchtung benötigt zusätzlich elektrische Leistung. Der **TTGO OTA Quiet Mode** reduziert unnötige Display-Last. In der aktuellen Konfiguration wird die Hintergrundbeleuchtung abgeschaltet. Dadurch sinkt der Strombedarf des Displays und die Versorgung hat mehr Reserve für ESP32 und WLAN. Das regelmäßige Rendern der Anzeige läuft derzeit weiter.
 
-Der Modus ist besonders sinnvoll wenn:
-
-- der TTGO schlechten WLAN-Empfang hat,
-- ein OTA-Update instabil läuft,
-- man während der Fehlersuche möglichst wenig unnötige Display-Last haben möchte.
-
-Wichtig: Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Service-/Diagnosemodus für den TTGO selbst.
+Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Service-/Diagnosemodus für den TTGO selbst.
 
 ## Steuerregister
 
@@ -152,9 +143,7 @@ Wichtig: Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist e
 
 ### Firmware-Hinweis
 
-Marstek-Firmware kann die RS485-Fernsteuerung wieder deaktivieren, z. B. wenn Betriebsarten über die App oder andere Modbus-Register verändert werden. Deshalb wird der RS485-Control-Code im Heartbeat mit ausgegeben.
-
-Ein gesunder Entlade-Heartbeat kann z. B. so aussehen:
+Marstek-Firmware kann die RS485-Fernsteuerung wieder deaktivieren. Deshalb wird der RS485-Control-Code im Heartbeat ausgegeben. Ein gesunder Entlade-Heartbeat kann z. B. so aussehen:
 
 ```text
 Heartbeat: ... req=-700 meas=797 rs485=21930 ctrl=2 dis_reg=700 ...
@@ -164,44 +153,22 @@ Wenn Sollwert und Force Mode korrekt aussehen, aber der Speicher trotzdem 0 W li
 
 ## Was die Firmware zusätzlich macht
 
-Die YAML enthält unter anderem:
+Die YAML enthält getrennte schnelle/langsame Modbus-Abfragen, Plausibilitäts- und Medianfilter, SoC-Sprungfilter, Request/Ack-Tracking, Underdelivery-Diagnose, Modbus-Freshness-Überwachung, Recovery/Watchdog, Software-NOT-AUS, TFT-Anzeige, lokale Tastensteuerung und den RS485-Control-Code im Heartbeat.
 
-- getrennte schnelle und langsame Modbus-Abfragen
-- Plausibilitätsprüfung der AC-Leistung
-- Median-of-3-Filter
-- SoC-Sprungfilter
-- Request/Ack-Tracking
-- Underdelivery-Diagnose
-- Modbus-Freshness-Überwachung
-- einmaligen RS485-Recovery-Versuch bei ausbleibenden Daten
-- TTGO-Neustart bei dauerhaftem Kommunikationsausfall
-- Software-NOT-AUS
-- lokale TFT-Anzeige
-- Bedienung über beide TTGO-Tasten
-- RS485-Control-Code im Heartbeat
-
-Eine ausführliche Erklärung des Codes steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
-
-## Vor dem ersten Einsatz
-
-1. Versorgungsspannung und Logikpegel des RS485-Moduls prüfen.
-2. GND und A/B kontrollieren.
-3. Zunächst ohne automatische Lade-/Entladeregelung testen.
-4. `Venus Modbus OK` prüfen.
-5. SoC und Leistung auf Plausibilität prüfen.
-6. Erst kleine Sollwerte testen, z. B. 100–300 W.
-7. Erst danach unbeaufsichtigte Automationen aktivieren.
+Eine ausführliche Erklärung steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 
 ## 3D-gedrucktes Gehäuse
 
-Die STL-Dateien liegen unter [`enclosure/STL/`](enclosure/STL/).
+Das Gehäuse besteht aus zwei druckbaren Teilen:
+
+- [`Body.stl`](enclosure/STL/Body.stl) – Gehäusekörper
+- [`Lid.stl`](enclosure/STL/Lid.stl) – Frontdeckel mit Display-, Tasten- und Lüftungsöffnungen
+
+Die Dateien können direkt aus dem Repository heruntergeladen und im Slicer geöffnet werden. Das gezeigte Gehäuse nimmt TTGO, RS485-Interface und Verdrahtung gemeinsam auf.
 
 ## Credits / Vorarbeiten
 
-Dieses Projekt baut auf Arbeit aus der Marstek-Community auf. Besonders wichtig waren:
-
-- **ViperRNMC – marstek_venus_modbus** – wichtige Referenz für Marstek-Venus-Modbus-Register und das Verhalten der Home-Assistant-Anbindung.
-- **Superduper1969 – MarstekVenus-LilygoRS485** – ESPHome/LILYGO-RS485-Referenz und Inspiration für eine direkte ESP-basierte Marstek-Anbindung.
+Dieses Projekt baut auf Arbeit aus der Marstek-Community auf. Besonders wichtig waren **ViperRNMC – marstek_venus_modbus** als Referenz für Marstek-Venus-Modbus-Register und **Superduper1969 – MarstekVenus-LilygoRS485** als ESPHome/LILYGO-RS485-Referenz und Inspiration.
 
 ## Projekt unterstützen
 
