@@ -20,44 +20,24 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 
 Der eigentliche Grund für dieses Projekt ist nicht nur, Daten des Marstek in Home Assistant anzuzeigen. Ziel ist es, den **Marstek Venus als gezielt steuerbaren Bestandteil eines übergeordneten Energiemanagements** nutzbar zu machen.
 
-Im ursprünglichen Hausaufbau wird der PV-Überschuss nach einer eigenen Prioritätslogik auf mehrere flexible Verbraucher verteilt:
+Im ursprünglichen Hausaufbau wird der PV-Überschuss nach einer eigenen Prioritätslogik verteilt:
 
-1. **Elektroauto zuerst:** Möglichst der gesamte verfügbare PV-Überschuss soll zunächst zum Laden des Elektroautos verwendet werden.
-2. **Warmwasser danach:** Lädt das Auto nicht, ist es voll oder kann es den vorhandenen Überschuss nicht aufnehmen, wird die verbleibende Energie für die Warmwasserbereitung genutzt. Ein elektrischer Heizstab wird dafür über einen Node-RED-Flow in mehreren Leistungsstufen zwischen **0 und 3000 W** geregelt.
-3. **Marstek zuletzt:** Erst wenn das Elektroauto keine Energie benötigt und das Wasser bereits warm genug ist, soll der noch vorhandene PV-Überschuss in den Marstek Venus geladen werden.
+1. **Elektroauto zuerst:** möglichst der gesamte verfügbare PV-Überschuss soll zunächst in das EV fließen.
+2. **Warmwasser danach:** lädt das Auto nicht oder ist es voll, wird ein elektrischer Heizstab über Node-RED in mehreren Stufen zwischen **0 und 3000 W** geregelt.
+3. **Marstek zuletzt:** erst wenn weder EV noch Warmwasser den Überschuss benötigen, wird der Marstek geladen.
 
-Der Batteriespeicher dient damit hauptsächlich als **zeitlicher Energiespeicher**: Er nimmt ansonsten ungenutzte PV-Energie auf und soll sie später wieder für die normale Hauslast bereitstellen – insbesondere zur Abdeckung der nächtlichen Last.
+Der Marstek dient damit hauptsächlich als **zeitlicher Energiespeicher**, der überschüssige PV-Energie für die spätere Hauslast – insbesondere nachts – vorhält. Umgekehrt soll er **nicht entladen, um EV oder Heizstab zu versorgen**. Deshalb reicht die interne Marstek-Steuerlogik für diesen Anwendungsfall nicht aus: Lade- und Entladeleistung müssen von einer übergeordneten Logik gezielt vorgegeben werden können.
 
-Mindestens genauso wichtig ist die umgekehrte Richtung: Der Marstek soll **nicht entladen, um das Elektroauto oder den Heizstab zu versorgen**. Aus Sicht des Speichers könnten diese großen Verbraucher ansonsten einfach wie zusätzliche Hauslast aussehen. Damit würde bereits gespeicherte Energie wieder in Verbraucher fließen, die nach der gewünschten Priorisierung ausschließlich mit aktuellem PV-Überschuss betrieben werden sollen.
-
-Aus diesem Grund reichte die interne Marstek-Steuerlogik für diesen Anwendungsfall nicht aus. Der Speicher musste zu einem gezielt steuerbaren Teilnehmer des zentralen Energiemanagements werden. Genau dafür stellt dieses ESPHome-Projekt die fehlende Schnittstelle bereit: Über **RS485 / Modbus RTU** können Home Assistant und eine übergeordnete Automation die relevanten Betriebsdaten auslesen und die Lade- bzw. Entladeleistung des Marstek gezielt vorgeben.
-
-### Was dieses Repository macht – und was bewusst nicht
-
-Dieses Repository stellt die **allgemeingültige Marstek-Integrations- und Steuerschicht** bereit:
-
-- direkte **RS485 / Modbus RTU** Verbindung zum Speicher
-- **ESPHome** Firmware
-- native **Home Assistant** Entitäten
-- von außen einstellbare Lade-/Entlade-Sollwerte
-- **TTGO/LILYGO Display** mit SoC, Leistung, WLAN- und Modbus-Status
-- Watchdog und Modbus-Recovery
-- Plausibilitätsfilter für SoC und AC-Leistung
-- Diagnose von Soll- gegen Ist-Leistung
-- experimentelle lokale Bedienung über die beiden TTGO-Tasten
-- optionales 3D-gedrucktes Gehäuse
-- lokale Steuerung ohne Cloud-Zwang
-
-Die eigentliche **Node-RED-Energiemanagement-Logik ist bewusst nicht Bestandteil dieses Repositories**. Eine solche Logik hängt stark von der jeweiligen PV-Anlage, Wallbox, dem Elektroauto, der Warmwasserbereitung, weiteren Hausverbrauchern und den persönlichen Prioritäten ab. Dieses Projekt soll daher nicht vorgeben, wie ein Haus seine Energie verteilen muss. Es macht den Marstek Venus stattdessen **allgemeingültig in Home Assistant auslesbar und steuerbar**, sodass er in eine beliebige übergeordnete Automation eingebunden werden kann – beispielsweise Node-RED, Home-Assistant-Automationen oder eine andere Steuerlogik.
+Dieses Projekt stellt dafür die allgemeingültige **ESPHome-/RS485-/Home-Assistant-Schnittstelle** bereit. Die konkrete Node-RED-Energiemanagement-Logik ist bewusst **nicht Bestandteil dieses Repositories**, da sie stark von PV-Anlage, Wallbox, Fahrzeug, Warmwasserbereitung und persönlichen Prioritäten abhängt.
 
 ## Hardware / Teileliste
 
 | Bauteil | Zweck | Hinweis | Bezugsquelle |
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
-| TTL ↔ RS485 Transceiver-Modul | physische Modbus/RS485-Schnittstelle | 3,3-V-Kompatibilität prüfen | [Amazon*](https://link.amazon/B0evMwitV) |
-| 5-V-Netzteil | feste Versorgung des Controllers | Im Referenzaufbau werden +5 V und GND auf die grüne Lochraster-/Trägerplatine geführt; die Micro-USB-Buchse ist nicht die reguläre Versorgung im eingebauten Zustand | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten; im gezeigten Aufbau werden blau, weiß/orange und orange genutzt | vorhanden / beliebig |
+| TTL ↔ RS485 Transceiver-Modul | Modbus/RS485-Schnittstelle | verwendetes Modul mit Pins `3-5V`, `RX-I`, `TX-O`, `RTS`, `GND` sowie `A/B/G` | [Amazon*](https://link.amazon/B0evMwitV) |
+| 5-V-Netzteil | feste Versorgung des Controllers | +5 V und GND gehen auf die grüne Trägerplatine; Micro-USB ist nicht die reguläre Versorgung | [Amazon*](https://link.amazon/B0cxu0tlI) |
+| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten; im Referenzaufbau T568B | vorhanden / beliebig |
 | 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Cover als STL enthalten | [STL-Ordner](enclosure/STL/) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
@@ -66,7 +46,7 @@ Die eigentliche **Node-RED-Energiemanagement-Logik ist bewusst nicht Bestandteil
 
 ### Gesamtübersicht
 
-Der fertige Controller hat zwei getrennte Verbindungswege: **Versorgung** und **RS485-Kommunikation**.
+Der Marstek selbst versorgt den Controller **nicht**. TTGO und RS485-Transceiver werden aus dem **externen 5-V-Netzteil** versorgt. Vom Marstek kommen nur die drei Leitungen **A, B und G** der RS485-Verbindung.
 
 ```text
 230 V AC
@@ -75,42 +55,50 @@ Der fertige Controller hat zwei getrennte Verbindungswege: **Versorgung** und **
 5-V-Netzteil
    │  +5 V / GND
    ▼
-grüne Lochraster-/Trägerplatine
-   │
-   ├──► TTGO T-Display
-   └──► RS485-Elektronik / gemeinsame Versorgung
+grüne Träger-/Lochrasterplatine
+   ├──────────────► TTGO T-Display
+   └──────────────► RS485-Modul: 3-5V + GND
 
-TTGO T-Display
-   │ GPIO27 / GPIO26 / GPIO25 / GND
-   ▼
-RS485-Transceiver
-   │ A / B / Bezugspotential
-   ▼
-aufgetrenntes Ethernet-Patchkabel
-   │
-   ▼
-Marstek Venus RS485-Port
+TTGO T-Display                  RS485-Modul
+GPIO27 (TX) ──────────────────► RX-I
+GPIO26 (RX) ◄────────────────── TX-O
+GPIO25      ──────────────────► RTS
+GND         ─────────────────── GND
+
+RS485-Modul                     T568B-Patchkabel      Marstek RJ45
+A ────────────────────────────► weiß/orange ────────► Pin 1
+B ────────────────────────────► orange ─────────────► Pin 2
+G ────────────────────────────► blau ───────────────► Pin 4
 ```
 
-### Stromversorgung: Netzteil → Trägerplatine → TTGO
+### Komplette Anschluss-Tabelle
 
-Im **fest eingebauten Referenzaufbau** wird der TTGO **nicht über seine Micro-USB-Buchse versorgt**. Das externe Netzteil liefert 5 V. **+5 V und GND werden auf die grüne Lochraster-/Trägerplatine geführt**, auf der der TTGO eingelötet ist. Über diese Platine wird der Controller versorgt; dort befindet sich auch die interne Verdrahtung zum RS485-Interface.
-
-Die auf einzelnen Fotos sichtbare USB-Verbindung am TTGO wurde lediglich beim **Testen/Flashen** verwendet und stellt nicht die normale Versorgung des eingebauten Controllers dar.
-
-> **Wichtig:** Nur eine stabilisierte 5-V-Versorgung verwenden und vor dem Anschluss Polarität und Spannung messen. Nicht gleichzeitig eine unbekannte externe 5-V-Einspeisung und USB anschließen, wenn nicht sichergestellt ist, dass die konkrete Hardware das gefahrlos unterstützt.
-
-### ESP32 ↔ RS485-Modul
-
-Diese Zuordnung ist durch die aktuelle ESPHome-Konfiguration festgelegt:
-
-| TTGO / ESP32 | RS485-Modul | Funktion |
+| Von | Nach | Funktion |
 |---|---|---|
-| GPIO27 | DI / TX | UART TX |
-| GPIO26 | RO / RX | UART RX |
-| GPIO25 | DE + /RE | RS485 Sende-/Empfangsumschaltung |
-| GND | GND | gemeinsame Masse |
-| VCC | VCC | passend zum verwendeten RS485-Modul |
+| externes Netzteil +5 V | grüne Trägerplatine | Versorgung |
+| externes Netzteil GND | grüne Trägerplatine | Masse |
+| Trägerplatine +5 V | TTGO 5-V-Versorgung | TTGO Versorgung |
+| Trägerplatine GND | TTGO GND | TTGO Masse |
+| Trägerplatine +5 V | RS485-Modul `3-5V` | Versorgung RS485-Modul |
+| Trägerplatine GND | RS485-Modul `GND` | Masse RS485-Modul |
+| TTGO GPIO27 (TX) | RS485 `RX-I` | UART vom TTGO zum Transceiver |
+| TTGO GPIO26 (RX) | RS485 `TX-O` | UART vom Transceiver zum TTGO |
+| TTGO GPIO25 | RS485 `RTS` | Sende-/Empfangsumschaltung |
+| RS485 `A` | T568B weiß/orange | Marstek RS485 A, RJ45 Pin 1 |
+| RS485 `B` | T568B orange | Marstek RS485 B, RJ45 Pin 2 |
+| RS485 `G` | T568B blau | RS485-Bezugspotential, RJ45 Pin 4 |
+
+### Stromversorgung
+
+Im fest eingebauten Referenzaufbau wird der TTGO **nicht über Micro-USB** versorgt. Das externe Netzteil liefert 5 V auf die grüne Träger-/Lochrasterplatine. Von dort werden sowohl der TTGO als auch das RS485-Modul versorgt.
+
+Die Micro-USB-Verbindung auf einzelnen Fotos wurde nur zum **Testen/Flashen** verwendet.
+
+> **Wichtig:** Vor dem Anschluss Spannung und Polarität prüfen. Eine externe 5-V-Einspeisung und USB nicht gleichzeitig anschließen, wenn nicht sichergestellt ist, dass die konkrete Hardware das unterstützt.
+
+### ESPHome-Pins
+
+Die TTGO-Pins sind zusätzlich durch die aktuelle YAML festgelegt:
 
 ```yaml
 uart:
@@ -128,36 +116,6 @@ modbus:
   flow_control_pin: GPIO25
 ```
 
-### Marstek Venus ↔ Controller: tatsächlich verwendetes Patchkabel
-
-Für den funktionierenden Referenzaufbau wurde **kein spezielles Marstek-RS485-Kabel** verwendet. Stattdessen wurde ein normales Ethernet-Patchkabel an einer Seite abgeschnitten. Der RJ45-Stecker bleibt am Marstek Venus eingesteckt; am anderen Ende werden nur die benötigten Einzeladern verwendet.
-
-Am real aufgebauten Gerät sind anhand des Aufbaus und der Fotos drei Adern eindeutig nachvollziehbar: **blau**, **weiß/orange** und **orange**.
-
-Am kleinen **3-poligen Steckverbinder im Controller** sind sie, so wie der Stecker auf den Projektfotos zu sehen ist, in dieser Reihenfolge aufgelegt:
-
-```text
-oben     → blau
-2. Pin   → weiß/orange
-3. Pin   → orange
-```
-
-Bei einem üblichen **T568B**-Patchkabel entsprechen diese Farben:
-
-| Aderfarbe | T568B RJ45-Pin | Einordnung |
-|---|---:|---|
-| weiß/orange | 1 | eine Leitung des RS485-Datenpaares |
-| orange | 2 | zweite Leitung des RS485-Datenpaares |
-| blau | 4 | dritte im realen Aufbau verwendete Leitung |
-
-Damit lässt sich aus dem funktionierenden Aufbau sicher festhalten, dass **weiß/orange und orange das verwendete differentielle RS485-Leitungspaar bilden**. Welche dieser beiden Leitungen am konkret verwendeten RS485-Modul als **A** bzw. **B** beschriftet ist, wurde beim Aufbau nicht dokumentiert und ist auf den vorhandenen Fotos nicht zuverlässig genug abzulesen. Deshalb wird hier bewusst keine möglicherweise falsche A/B-Farbzuordnung behauptet.
-
-Die **blaue Ader** ist im realen Aufbau ebenfalls angeschlossen. Ihre exakte elektrische Zuordnung wurde beim Aufbau jedoch nicht separat vermessen bzw. dokumentiert. Die Dokumentation behauptet deshalb bewusst nicht, ob sie GND oder eine andere Funktion führt.
-
-> **Wichtig:** Nicht einfach beliebige drei Adern nach Farbe anschließen. Patchkabel können anders belegt sein. Entscheidend sind die tatsächlichen RJ45-Pins. Wer den Aufbau nachbaut, sollte die Adern des verwendeten Kabels mit einem Multimeter/Durchgangsprüfer vom RJ45-Stecker bis zum abgeschnittenen Ende identifizieren.
-
-> **RS485 A/B:** Die Bezeichnungen A und B sind bei RS485-Adaptern leider nicht immer einheitlich. Wenn die komplette Schaltung korrekt aufgebaut ist, aber keine Modbus-Kommunikation zustande kommt, kann eine vertauschte Datenleitung die Ursache sein. In diesem Fall ausschließlich die beiden RS485-Datenleitungen gegeneinander tauschen – niemals die dritte Leitung probeweise mit einer Datenleitung verbinden.
-
 Referenzparameter:
 
 ```text
@@ -168,51 +126,60 @@ Stopbits: 1
 Modbus Slave-ID: 1
 ```
 
+### Patchkabel / RJ45
+
+Im Referenzaufbau wurde ein normales **T568B-Ethernet-Patchkabel** verwendet und an einer Seite abgeschnitten. Der RJ45-Stecker bleibt am Marstek; am offenen Ende werden nur drei Adern verwendet:
+
+| RJ45-Pin | T568B-Farbe | RS485-Modul |
+|---:|---|---|
+| 1 | weiß/orange | A |
+| 2 | orange | B |
+| 4 | blau | G |
+
+Am kleinen 3-poligen Steckverbinder im Controller liegen die Adern – **in der Orientierung der Projektfotos** – von oben nach unten als **blau → weiß/orange → orange**.
+
+> **Wichtig:** Nicht blind nach Farben anschließen. Bei einem anderen oder anders belegten Patchkabel die RJ45-Pins mit einem Durchgangsprüfer identifizieren. Entscheidend sind die Pins 1, 2 und 4.
+
+> **Achtung bei Fotos der RS485-Platine:** Einige Referenzbilder zeigen die **Unterseite** bzw. sind gedreht. Nicht die räumliche Position aus einem Foto kopieren, sondern immer nach den aufgedruckten Bezeichnungen `A`, `B`, `G`, `3-5V`, `GND`, `RX-I`, `TX-O` und `RTS` gehen.
+
 ### Innenaufbau
 
 <p align="center"><img src="images/case_open.jpg" alt="Innenansicht des Controllers" width="900"></p>
 
-Das TTGO T-Display, die grüne Trägerplatine und das RS485-Interface sind gemeinsam im Gehäuse untergebracht. Die Kabel werden seitlich über Kabelverschraubungen herausgeführt.
+TTGO, grüne Trägerplatine und RS485-Interface sind gemeinsam im Gehäuse untergebracht.
 
 ## Display und die beiden Tasten
 
 <p align="center"><img src="images/display.jpg" alt="TTGO Display im Betrieb" width="900"></p>
 
-Das Display zeigt unter anderem den aktuellen Sollwert (**SET**), den Ladezustand (**SOC**), die aktuelle Leistung sowie Kommunikations- und WLAN-Status.
+Das Display zeigt unter anderem Sollwert (**SET**), Ladezustand (**SOC**), aktuelle Leistung sowie Kommunikations- und WLAN-Status.
 
-> **Experimentell / noch nicht am realen Gerät getestet:** Die folgende Tastenfunktion ist in der aktuellen YAML implementiert, wurde am gezeigten Aufbau aber noch nicht praktisch verifiziert. Bitte zunächst nur mit kleinen Sollwerten testen.
+> **Experimentell / noch nicht am realen Gerät getestet:** Die Tastenfunktion ist in der YAML implementiert, wurde am gezeigten Aufbau aber noch nicht praktisch verifiziert.
 
-Die vorgesehene Funktion der beiden kleinen TTGO-Taster ist:
-
-- **Linke Taste (GPIO0):** erhöht den Sollwert bei jedem Tastendruck um **100 W**. Positive Sollwerte bedeuten **Laden**.
-- **Rechte Taste (GPIO35):** verringert den Sollwert bei jedem Tastendruck um **100 W**. Negative Sollwerte bedeuten **Entladen**.
+- **Linke Taste (GPIO0):** +100 W je Druck; positive Werte bedeuten Laden.
+- **Rechte Taste (GPIO35):** −100 W je Druck; negative Werte bedeuten Entladen.
 - Bei **0 W** wird die Leistungsausgabe gestoppt.
-- Der Bereich ist in der Firmware auf **−2500 W bis +2500 W** begrenzt.
-- Die Tastensteuerung wird nur verarbeitet, wenn **Venus Master (RS485 Enable)** aktiv ist.
+- Bereich: **−2500 W bis +2500 W**.
+- Nur aktiv, wenn **Venus Master (RS485 Enable)** eingeschaltet ist.
 
 ## ESPHome Installation
 
-1. [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in das ESPHome-Konfigurationsverzeichnis kopieren.
-2. `secrets.yaml` anhand von [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml) anlegen bzw. ergänzen.
-3. UART- und RS485-Pins mit der eigenen Hardware abgleichen.
-4. Konfiguration in ESPHome validieren.
-5. TTGO flashen.
-6. ESPHome-Gerät in Home Assistant hinzufügen.
-7. Vor Automationen zuerst prüfen, ob **Venus Modbus OK** aktiv ist.
+1. [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in ESPHome übernehmen.
+2. `secrets.yaml` anhand von [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml) anlegen.
+3. Pins und Verdrahtung prüfen.
+4. YAML validieren und TTGO flashen.
+5. Gerät in Home Assistant hinzufügen.
+6. Vor Automationen **Venus Modbus OK** prüfen.
 
 ## Home Assistant
 
 <p align="center"><img src="images/HA%20Screenshot.jpg" alt="ESPHome-Gerät in Home Assistant" width="900"></p>
 
-Unter anderem werden bereitgestellt: Venus SOC, AC Power, Stable Power, Max Charge/Discharge Power, Temperaturen, Modbus OK, Lade-/Entlade-Sollwerte, RS485 Master, NOT-AUS, OTA Quiet Mode, Restart und WiFi RSSI.
+Bereitgestellt werden unter anderem SoC, AC-Leistung, geglättete Leistung, Temperaturwerte, maximale Lade-/Entladeleistung, Modbus-Status, Lade-/Entlade-Sollwerte, RS485 Master, NOT-AUS, OTA Quiet Mode, Restart und WiFi RSSI.
 
 ## Warum gibt es den OTA Quiet Mode?
 
-Der TTGO kann an einem Ort mit schwachem WLAN-Empfang betrieben werden. Gerade bei OTA-Updates oder bei der Fehlersuche möchten wir dem ESP32 möglichst viel Reserve für WLAN und Kommunikation geben.
-
-Das Display erzeugt zusätzliche Last auf zwei Ebenen: Das regelmäßige Zeichnen und Aktualisieren benötigt Rechenzeit und SPI-Kommunikation; die Hintergrundbeleuchtung benötigt zusätzlich elektrische Leistung. Der **TTGO OTA Quiet Mode** reduziert unnötige Display-Last. In der aktuellen Konfiguration wird die Hintergrundbeleuchtung abgeschaltet. Dadurch sinkt der Strombedarf des Displays und die Versorgung hat mehr Reserve für ESP32 und WLAN. Das regelmäßige Rendern der Anzeige läuft derzeit weiter.
-
-Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Service-/Diagnosemodus für den TTGO selbst.
+Bei schwachem WLAN soll der ESP32 möglichst viel Reserve für Funk und Kommunikation haben. Das Display verursacht sowohl CPU-/SPI-Last durch das Rendern als auch Stromverbrauch durch die Hintergrundbeleuchtung. Der Quiet Mode schaltet in der aktuellen Konfiguration die Hintergrundbeleuchtung aus und reduziert damit die elektrische Last; das Rendering läuft derzeit weiter. Die Marstek-Steuerlogik bleibt aktiv.
 
 ## Steuerregister
 
@@ -228,7 +195,7 @@ Der Quiet Mode schaltet **nicht** die Marstek-Steuerlogik aus. Er ist ein Servic
 
 ### Firmware-Hinweis
 
-Marstek-Firmware kann die RS485-Fernsteuerung wieder deaktivieren. Deshalb wird der RS485-Control-Code im Heartbeat ausgegeben. Ein gesunder Entlade-Heartbeat kann z. B. so aussehen:
+Marstek-Firmware kann die RS485-Fernsteuerung wieder deaktivieren. Deshalb wird der RS485-Control-Code im Heartbeat ausgegeben:
 
 ```text
 Heartbeat: ... req=-700 meas=797 rs485=21930 ctrl=2 dis_reg=700 ...
@@ -238,26 +205,20 @@ Wenn Sollwert und Force Mode korrekt aussehen, aber der Speicher trotzdem 0 W li
 
 ## Was die Firmware zusätzlich macht
 
-Die YAML enthält getrennte schnelle/langsame Modbus-Abfragen, Plausibilitäts- und Medianfilter, SoC-Sprungfilter, Request/Ack-Tracking, Underdelivery-Diagnose, Modbus-Freshness-Überwachung, Recovery/Watchdog, Software-NOT-AUS, TFT-Anzeige, experimentelle lokale Tastensteuerung und den RS485-Control-Code im Heartbeat.
+Die YAML enthält schnelle/langsame Modbus-Abfragen, mehrstufige Plausibilitäts- und Anti-Glitch-Filter, Medianfilter, SoC-Sprungfilter, Request/Ack-Tracking, Underdelivery-Diagnose, Modbus-Freshness-Überwachung, Recovery/Watchdog, Software-NOT-AUS, TFT-Anzeige und den RS485-Control-Code im Heartbeat.
 
 Eine ausführliche Erklärung steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 
 ## 3D-gedrucktes Gehäuse
 
-Das Gehäuse besteht aus zwei druckbaren Teilen:
-
 - [`Body.stl`](enclosure/STL/Body.stl) – Gehäusekörper
 - [`Cover.stl`](enclosure/STL/Cover.stl) – Frontdeckel mit Display-, Tasten- und Lüftungsöffnungen
-
-Die Dateien können direkt aus dem Repository heruntergeladen und im Slicer geöffnet werden. Das gezeigte Gehäuse nimmt TTGO, RS485-Interface und Verdrahtung gemeinsam auf.
 
 ## Credits / Vorarbeiten
 
 Dieses Projekt baut auf Arbeit aus der Marstek-Community auf. Besonders wichtig waren **ViperRNMC – marstek_venus_modbus** als Referenz für Marstek-Venus-Modbus-Register und **Superduper1969 – MarstekVenus-LilygoRS485** als ESPHome/LILYGO-RS485-Referenz und Inspiration.
 
 ## Projekt unterstützen
-
-Wenn dir das Projekt geholfen hat und du die Weiterentwicklung unterstützen möchtest:
 
 <a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendiere mir einen Kaffee via PayPal" width="430"></a>
 
