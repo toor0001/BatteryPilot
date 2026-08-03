@@ -10,11 +10,11 @@ Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung
 
 ## Der fertige Aufbau
 
-![Marstek Venus mit TTGO-RS485-Steuerung](images/wall_setup.jpg)
+<p align="center"><img src="images/wall_setup.jpg" alt="Marstek Venus mit TTGO-RS485-Steuerung" width="900"></p>
 
 Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt die lokale RS485-Kommunikation.
 
-<p align="center"><img src="images/case.jpg" alt="3D-gedrucktes TTGO Gehäuse" width="520"></p>
+<p align="center"><img src="images/case.jpg" alt="3D-gedrucktes TTGO Gehäuse" width="900"></p>
 
 ## Warum dieses Projekt?
 
@@ -26,7 +26,7 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 - Watchdog und Modbus-Recovery
 - Plausibilitätsfilter für SoC und AC-Leistung
 - Diagnose von Soll- gegen Ist-Leistung
-- lokale Bedienung über die beiden TTGO-Tasten
+- experimentelle lokale Bedienung über die beiden TTGO-Tasten
 - optionales 3D-gedrucktes Gehäuse
 - lokale Steuerung ohne Cloud-Zwang
 
@@ -85,25 +85,27 @@ Modbus Slave-ID: 1
 
 ### Innenaufbau
 
-![Innenansicht des Controllers](images/case_open.jpg)
+<p align="center"><img src="images/case_open.jpg" alt="Innenansicht des Controllers" width="900"></p>
 
 Das TTGO T-Display und das RS485-Interface sind gemeinsam im Gehäuse untergebracht. Die Kabel werden seitlich über Kabelverschraubungen herausgeführt.
 
 ## Display und die beiden Tasten
 
-<p align="center"><img src="images/display.jpg" alt="TTGO Display im Betrieb" width="620"></p>
+<p align="center"><img src="images/display.jpg" alt="TTGO Display im Betrieb" width="900"></p>
 
 Das Display zeigt unter anderem den aktuellen Sollwert (**SET**), den Ladezustand (**SOC**), die aktuelle Leistung sowie Kommunikations- und WLAN-Status.
 
-Die beiden kleinen Taster am TTGO erlauben eine direkte lokale Leistungssteuerung, auch ohne Home Assistant zu öffnen:
+> **Experimentell / noch nicht am realen Gerät getestet:** Die folgende Tastenfunktion ist in der aktuellen YAML implementiert, wurde am gezeigten Aufbau aber noch nicht praktisch verifiziert. Bitte zunächst nur mit kleinen Sollwerten testen.
+
+Die vorgesehene Funktion der beiden kleinen TTGO-Taster ist:
 
 - **Linke Taste (GPIO0):** erhöht den Sollwert bei jedem Tastendruck um **100 W**. Positive Sollwerte bedeuten **Laden**.
 - **Rechte Taste (GPIO35):** verringert den Sollwert bei jedem Tastendruck um **100 W**. Negative Sollwerte bedeuten **Entladen**.
 - Bei **0 W** wird die Leistungsausgabe gestoppt.
 - Der Bereich ist in der Firmware auf **−2500 W bis +2500 W** begrenzt.
-- Die Tastensteuerung funktioniert nur, wenn **Venus Master (RS485 Enable)** aktiv ist.
+- Die Tastensteuerung wird nur verarbeitet, wenn **Venus Master (RS485 Enable)** aktiv ist.
 
-Beispiel: Ausgehend von 0 W führt dreimal links zu **+300 W Laden**. Dreimal rechts führt wieder zu 0 W; weitere Tastendrücke nach rechts wechseln in den Entladebereich.
+Beispiel gemäß aktueller Implementierung: Ausgehend von 0 W würde dreimal links **+300 W Laden** auswählen. Dreimal rechts würde wieder zu 0 W führen; weitere Tastendrücke nach rechts würden in den Entladebereich wechseln.
 
 ## ESPHome Installation
 
@@ -117,7 +119,7 @@ Beispiel: Ausgehend von 0 W führt dreimal links zu **+300 W Laden**. Dreimal re
 
 ## Home Assistant
 
-![ESPHome-Gerät in Home Assistant](images/HA%20Screenshot.jpg)
+<p align="center"><img src="images/HA%20Screenshot.jpg" alt="ESPHome-Gerät in Home Assistant" width="900"></p>
 
 Unter anderem werden bereitgestellt: Venus SOC, AC Power, Stable Power, Max Charge/Discharge Power, Temperaturen, Modbus OK, Lade-/Entlade-Sollwerte, RS485 Master, NOT-AUS, OTA Quiet Mode, Restart und WiFi RSSI.
 
@@ -153,7 +155,7 @@ Wenn Sollwert und Force Mode korrekt aussehen, aber der Speicher trotzdem 0 W li
 
 ## Was die Firmware zusätzlich macht
 
-Die YAML enthält getrennte schnelle/langsame Modbus-Abfragen, Plausibilitäts- und Medianfilter, SoC-Sprungfilter, Request/Ack-Tracking, Underdelivery-Diagnose, Modbus-Freshness-Überwachung, Recovery/Watchdog, Software-NOT-AUS, TFT-Anzeige, lokale Tastensteuerung und den RS485-Control-Code im Heartbeat.
+Die YAML enthält getrennte schnelle/langsame Modbus-Abfragen, Plausibilitäts- und Medianfilter, SoC-Sprungfilter, Request/Ack-Tracking, Underdelivery-Diagnose, Modbus-Freshness-Überwachung, Recovery/Watchdog, Software-NOT-AUS, TFT-Anzeige, experimentelle lokale Tastensteuerung und den RS485-Control-Code im Heartbeat.
 
 Eine ausführliche Erklärung steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 
