@@ -242,9 +242,9 @@ See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for attribution and licen
 
 This repository is released under the **MIT License**. See [`LICENSE`](LICENSE).
 
-## Support this project
+## Say thanks
 
-If you find this project useful, you can support it via the **Sponsor** button at the top of the GitHub repository.
+If this project helped you or you were able to use it successfully for your own setup, I appreciate a small thank-you. You can use the **Sponsor** button at the top of the repository or buy me a coffee directly via PayPal.
 
 <a href="https://paypal.me/toor0001"><img src="assets/paypal-support-en.svg" alt="Buy me a coffee via PayPal" width="430"></a>
 
