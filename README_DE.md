@@ -4,6 +4,10 @@ Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO
 
 [🇬🇧 English README](README.md)
 
+[![ESPHome](https://img.shields.io/badge/ESPHome-ESP32-blue)](https://esphome.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue)](https://www.home-assistant.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Hiermit lässt sich die Ladung/ Entladung eines Martek Venus direkt aus Home Assistant heraus komfortabel steuern. Es ist keine Cloud-Verbindung und nicht die Marstek "Local API" nötig. Der TTGO erhält die Befehle per WLAN von Home Assistant und leitet sie per Modbus weiter. Er stellt in Home Assistant Sensoren, Diagnosewerte sowie Lade- und Entlade-Sollwerte bereit. Das TTGO-Display zeigt die wichtigsten Informationen direkt am Gerät.
 
 > **Status:** funktionierendes Projekt / Referenzaufbau. Getestet mit einem Marstek Venus E Gen3 und Firmware V148. Firmwareupdates von Marstek können das Modbus-Verhalten verändern; deshalb nach Updates die Steuerung immer erneut prüfen.
@@ -36,9 +40,7 @@ Dieses Projekt stellt nur die allgemeingültige **ESPHome-/RS485-/Home-Assistant
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 Transceiver-Modul | Modbus/RS485-Schnittstelle | verwendetes Modul mit Pins `3-5V`, `RX-I`, `TX-O`, `RTS`, `GND` sowie `A/B/G` | [Amazon*](https://link.amazon/B0evMwitV) |
-| 5-V-Netzteil | feste Versorgung des Controllers | +5 V und GND gehen auf die grüne Trägerplatine; Micro-USB ist nicht die reguläre Versorgung | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| normales Ethernet-Patchkabel | Verbindung zum Marstek | ein Ende wird abgeschnitten; im Referenzaufbau T568B | vorhanden / beliebig |
-| 3D-gedrucktes Gehäuse | mechanischer Schutz | Body + Cover als STL enthalten | [STL-Ordner](enclosure/STL/) |
+| 5-V-Netzteil | feste Versorgung des Controllers | +5 V und GND gehen auf die grüne Trägerplatine; Micro-USB ist nicht die reguläre Versorgung | [Amazon*](https://link.amazon/B047QzbuV) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
 
@@ -160,11 +162,11 @@ Das Display zeigt unter anderem Sollwert (**SET**), Ladezustand (**SOC**), aktue
 
 ## ESPHome Installation
 
-1. Neues Gerät in ESPHome erstellen und "Espressif ESP32 Dev Module" wählen
-2.  [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in ESPHome übernehmen.
+1. Neues Gerät in ESPHome erstellen und **Espressif ESP32 Dev Module** wählen.
+2. [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in ESPHome übernehmen.
 3. `secrets.yaml` anhand von [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml) anlegen.
-4. YAML validieren und TTGO flashen.(z.B. per USB direkt am PC oder am HomeAssistant Host anschließen)
-6. Gerät wird in Home Assistant hinzufügen unter "Geräte und Dienste" entdeckt. Dieses dort hinzufügen.
+4. YAML validieren und TTGO flashen, z.B. per USB direkt am PC oder am Home-Assistant-Host.
+5. Das Gerät wird in Home Assistant unter **Geräte und Dienste** entdeckt und kann dort hinzugefügt werden.
 
 ## Marstek-App-Einstellungen / Betriebsmodus
 
@@ -180,8 +182,6 @@ Für den **getesteten V148-Referenzaufbau** gilt:
 ### Was ist mit einem Marstek Smart Meter?
 
 Dieser Aufbau ersetzt bewusst die automatische Marstek-Regelung durch eine **eigene externe Regelung**. Ein Marstek Smart Meter kann zwar weiterhin vorhanden sein oder Messwerte liefern, aber **während der erzwungenen RS485-Steuerung sollte man nicht erwarten, dass er die Lade-/Entladeleistung des Speichers automatisch regelt**. Im manuellen/Force-Control-Betrieb muss die externe Automation die Entscheidungen deshalb selbst treffen. Dazu gehört auch, unerwünschte Fälle zu verhindern – etwa dass der Speicher das Elektroauto, einen Heizstab oder einen anderen flexiblen Verbraucher aus dem Akku versorgt.
-
-Mehr Details: [`docs/MARSTEK_APP_SETTINGS.md`](docs/MARSTEK_APP_SETTINGS.md)
 
 ## Home Assistant
 
