@@ -140,8 +140,6 @@ Am kleinen 3-poligen Steckverbinder im Controller liegen die Adern – **in der 
 
 > **Wichtig:** Nicht blind nach Farben anschließen. Bei einem anderen oder anders belegten Patchkabel die RJ45-Pins mit einem Durchgangsprüfer identifizieren. Entscheidend sind die Pins 1, 2 und 4.
 
-> **Achtung bei Fotos der RS485-Platine:** Einige Referenzbilder zeigen die **Unterseite** bzw. sind gedreht. Nicht die räumliche Position aus einem Foto kopieren, sondern immer nach den aufgedruckten Bezeichnungen `A`, `B`, `G`, `3-5V`, `GND`, `RX-I`, `TX-O` und `RTS` gehen.
-
 ### Innenaufbau
 
 <p align="center"><img src="images/case_open.jpg" alt="Innenansicht des Controllers" width="900"></p>
@@ -170,6 +168,25 @@ Das Display zeigt unter anderem Sollwert (**SET**), Ladezustand (**SOC**), aktue
 4. YAML validieren und TTGO flashen.
 5. Gerät in Home Assistant hinzufügen.
 6. Vor Automationen **Venus Modbus OK** prüfen.
+
+## Marstek-App-Einstellungen / Betriebsmodus
+
+Dieses Projekt steuert den Venus über die **physische RS485-/Modbus-RTU-Schnittstelle** und nicht über die netzwerkbasierte Marstek Local API.
+
+Für den **getesteten V148-Referenzaufbau** gilt:
+
+- **Local API / Open API muss nicht aktiviert sein.** Sie ist eine separate Schnittstelle und wird von diesem Projekt nicht benötigt.
+- Den Marstek-Betriebsmodus auf **Manuell** stellen, bevor die externe RS485-Steuerung die Lade-/Entladeleistung übernimmt.
+- Während aktiver RS485-Steuerung möglichst keine Betriebsart in der Marstek-App wechseln. Firmwareverhalten kann dabei die externe RS485-Steuerung zurücksetzen oder deaktivieren.
+- Die Entscheidung über Laden und Entladen übernimmt dann die eigene Home-Assistant-/Node-RED-Logik über die von diesem Projekt bereitgestellten Entitäten.
+
+### Was ist mit einem Marstek Smart Meter?
+
+Dieser Aufbau ersetzt bewusst die automatische Marstek-Regelung durch eine **eigene externe Regelung**. Ein Marstek Smart Meter kann zwar weiterhin vorhanden sein oder Messwerte liefern, aber **während der erzwungenen RS485-Steuerung sollte man nicht erwarten, dass er die Lade-/Entladeleistung des Speichers automatisch regelt**.
+
+Im manuellen/Force-Control-Betrieb muss die externe Automation die Entscheidungen deshalb selbst treffen. Dazu gehört auch, unerwünschte Fälle zu verhindern – etwa dass der Speicher das Elektroauto, einen Heizstab oder einen anderen flexiblen Verbraucher aus dem Akku versorgt.
+
+Mehr Details: [`docs/MARSTEK_APP_SETTINGS.md`](docs/MARSTEK_APP_SETTINGS.md)
 
 ## Home Assistant
 
@@ -217,6 +234,14 @@ Eine ausführliche Erklärung steht in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPL
 ## Credits / Vorarbeiten
 
 Dieses Projekt baut auf Arbeit aus der Marstek-Community auf. Besonders wichtig waren **ViperRNMC – marstek_venus_modbus** als Referenz für Marstek-Venus-Modbus-Register und **Superduper1969 – MarstekVenus-LilygoRS485** als ESPHome/LILYGO-RS485-Referenz und Inspiration.
+
+Ein Vergleich der aktuellen YAML ergab **keine wesentliche wortgleiche Übernahme der eigentlichen Anwendungslogik** aus einem der beiden Projekte. Gemeinsam sind vor allem ESPHome-/Modbus-Strukturen, öffentliche Registeradressen/Befehlswerte und übliche RS485-Konzepte. Filterung, Watchdog/Recovery, TFT-Anzeige, Request/Ack- und Diagnoselogik dieses Repositories sind eigenständige Implementierungen.
+
+Details zu Herkunft und Lizenzen stehen in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+## Lizenz
+
+Dieses Repository steht unter der **MIT-Lizenz**. Siehe [`LICENSE`](LICENSE).
 
 ## Projekt unterstützen
 
