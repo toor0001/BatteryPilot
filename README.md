@@ -244,7 +244,7 @@ This repository is released under the **MIT License**. See [`LICENSE`](LICENSE).
 
 ## Support this project
 
-<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-en.svg" alt="Buy me a coffee via PayPal" width="430"></a>
+If you find this project useful, you can support it via the **Sponsor** button at the top of the GitHub repository.
 
 ## Development note
 
