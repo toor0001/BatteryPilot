@@ -1,4 +1,4 @@
-# Marstek Venus ESPHome HA RS485
+# BatteryPilot - Marstek Venus ESPHome HA RS485
 
 Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO/TTGO T-Display**, **ESPHome**, **RS485/Modbus RTU** und **Home Assistant**.
 
