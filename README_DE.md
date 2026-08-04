@@ -242,6 +242,8 @@ Dieses Repository steht unter der **MIT-Lizenz**. Siehe [`LICENSE`](LICENSE).
 
 Wenn dir dieses Projekt hilft, kannst du es über den **Sponsor**-Button oben im GitHub-Repository unterstützen.
 
+<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendiere mir einen Kaffee via PayPal" width="430"></a>
+
 ## Hinweis zur Entwicklung
 
 Dieses Projekt ist im Rahmen eines kollaborativen **Vibe-Coding-Workflows** mit **ChatGPT** und **OpenAI Codex** entstanden. Beide Tools wurden für Code-Erstellung, Reviews, Fehlersuche und Dokumentation eingesetzt.
