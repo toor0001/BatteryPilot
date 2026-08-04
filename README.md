@@ -38,9 +38,7 @@ This repository only provides the general-purpose **ESPHome / RS485 / Home Assis
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, Wi-Fi and local display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 transceiver module | Modbus/RS485 interface | module used here exposes `3-5V`, `RX-I`, `TX-O`, `RTS`, `GND` and `A/B/G` | [Amazon*](https://link.amazon/B0evMwitV) |
-| 5 V power supply | Permanent controller supply | +5 V and GND feed the green carrier/perfboard; Micro-USB is not the normal installed supply | [Amazon*](https://link.amazon/B0cxu0tlI) |
-| Standard Ethernet patch cable | Connection to Marstek | one end is cut off; reference build uses T568B | any suitable cable |
-| 3D-printed enclosure | Mechanical protection | Body + Cover STL included | [STL folder](enclosure/STL/) |
+| 5 V power supply | Permanent controller supply | +5 V and GND feed the green carrier/perfboard; Micro-USB is not the normal installed supply | [Amazon*](https://link.amazon/B047QzbuV) |
 
 \* **Affiliate notice:** Links marked with `*` may be affiliate links. If you buy through them, the project owner may receive a small commission. Your price does not change.
 
