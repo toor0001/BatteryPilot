@@ -140,8 +140,6 @@ At the small 3-pin connector inside the controller, **in the orientation shown i
 
 > **Important:** Do not blindly copy wire colours. With a different or differently wired patch cable, identify RJ45 pins 1, 2 and 4 using a continuity tester.
 
-> **Photo orientation warning:** Some RS485-board reference images show the **underside** or are rotated. Do not copy physical left/right/top/bottom positions from a photo. Follow the printed labels `A`, `B`, `G`, `3-5V`, `GND`, `RX-I`, `TX-O` and `RTS`.
-
 ### Inside the controller
 
 <p align="center"><img src="images/case_open.jpg" alt="Inside the controller" width="900"></p>
@@ -170,6 +168,25 @@ The display shows the setpoint (**SET**), state of charge (**SOC**), current pow
 4. Validate the YAML and flash the TTGO.
 5. Add the device to Home Assistant.
 6. Verify **Venus Modbus OK** before enabling automations.
+
+## Marstek app settings / operating mode
+
+This project controls the Venus through **physical RS485 / Modbus RTU**, not through Marstek's network-based Local API.
+
+For the **tested V148 reference setup**:
+
+- **Local API / Open API does not need to be enabled.** It is a separate interface and is not required by this project.
+- Set the Marstek operating mode to **Manual** before handing charge/discharge control to the external RS485 automation.
+- Avoid changing operating modes from the Marstek app while RS485 control is active. Firmware behaviour can reset or disable external control when modes are changed.
+- Charge and discharge decisions are then made by your Home Assistant / Node-RED logic through the entities exposed by this project.
+
+### What about a Marstek smart meter?
+
+This setup deliberately replaces the Marstek's own automatic control loop with an external one. A Marstek smart meter may still be physically installed or used as a measurement source, but **it should not be expected to control battery charge/discharge while the Venus is being force-controlled through this RS485 setup**.
+
+In Manual/force-control operation, the external automation must therefore make the decisions itself. That also means it must prevent unwanted behaviour such as the battery discharging into an EV charger, immersion heater or another flexible load.
+
+More detail: [`docs/MARSTEK_APP_SETTINGS.md`](docs/MARSTEK_APP_SETTINGS.md)
 
 ## Home Assistant
 
@@ -217,6 +234,14 @@ A detailed explanation is in [`docs/CODE_EXPLAINED.md`](docs/CODE_EXPLAINED.md).
 ## Credits / prior work
 
 This project builds on work from the Marstek community. **ViperRNMC – marstek_venus_modbus** was an important reference for Marstek Venus Modbus registers, while **Superduper1969 – MarstekVenus-LilygoRS485** provided an ESPHome/LILYGO RS485 reference and inspiration.
+
+A review of the current YAML did **not identify substantial verbatim copying of application logic** from either project. Shared elements are mainly ESPHome/Modbus structures, public register addresses/command values and normal RS485 concepts. The custom filtering, watchdog/recovery, TFT UI, request/ack and diagnostic logic in this repository are separate implementations.
+
+See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for attribution and licensing notes.
+
+## License
+
+This repository is released under the **MIT License**. See [`LICENSE`](LICENSE).
 
 ## Support this project
 
