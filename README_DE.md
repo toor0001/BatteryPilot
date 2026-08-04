@@ -238,11 +238,11 @@ Details zu Herkunft und Lizenzen stehen in [`THIRD_PARTY_NOTICES.md`](THIRD_PART
 
 Dieses Repository steht unter der **MIT-Lizenz**. Siehe [`LICENSE`](LICENSE).
 
-## Projekt unterstützen
+## Danke sagen
 
-Wenn dir dieses Projekt hilft, kannst du es über den **Sponsor**-Button oben im GitHub-Repository unterstützen.
+Wenn dir dieses Projekt geholfen hat oder du es erfolgreich für deinen eigenen Aufbau einsetzen konntest, freue ich mich über ein kleines Dankeschön. Dafür kannst du den **Sponsor**-Button oben im Repository nutzen oder mir direkt einen Kaffee über PayPal spendieren.
 
-<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendiere mir einen Kaffee via PayPal" width="430"></a>
+<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendier mir einen Kaffee via PayPal" width="430"></a>
 
 ## Hinweis zur Entwicklung
 
