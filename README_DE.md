@@ -10,7 +10,7 @@ Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO
 
 Hiermit lässt sich die Ladung/ Entladung eines Martek Venus direkt aus Home Assistant heraus komfortabel steuern. Es ist keine Cloud-Verbindung und nicht die Marstek "Local API" nötig. Der TTGO erhält die Befehle per WLAN von Home Assistant und leitet sie per Modbus weiter. Er stellt in Home Assistant Sensoren, Diagnosewerte sowie Lade- und Entlade-Sollwerte bereit. Das TTGO-Display zeigt die wichtigsten Informationen direkt am Gerät.
 
-> **Status:** funktionierendes Projekt / Referenzaufbau. Getestet mit einem Marstek Venus E Gen3 und Firmware V148. Firmwareupdates von Marstek können das Modbus-Verhalten verändern; deshalb nach Updates die Steuerung immer erneut prüfen.
+> **Projektstatus: abgeschlossen / Referenzimplementierung.** Getestet mit einem Marstek Venus E Gen3 und Firmware V148. Das Projekt wird nicht aktiv weiterentwickelt. Anpassungen erfolgen nur bei Bedarf, beispielsweise wenn Änderungen der Marstek-Firmware die RS485-/Modbus-Kommunikation beeinflussen. Nach Firmwareupdates des Speichers sollte die Steuerung deshalb immer erneut geprüft werden.
 
 ## Der fertige Aufbau
 
