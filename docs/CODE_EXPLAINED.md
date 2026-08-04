@@ -4,9 +4,7 @@ Die ESPHome-Konfiguration ist mehr als eine reine Registerliste. Sie übernimmt 
 
 ## 1. Boot-Verhalten
 
-Beim Start wird der RS485-Master zunächst deaktiviert. Erst nach einer kurzen Wartezeit und erfolgreicher WLAN-Verbindung wird die Fernsteuerung eingeschaltet.
-
-Das verhindert, dass beim Booten sofort alte Sollwerte auf den Speicher geschrieben werden.
+Beim Start wird der RS485-Master zunächst deaktiviert. Erst nach einer kurzen Wartezeit und erfolgreicher WLAN-Verbindung wird die Fernsteuerung eingeschaltet. Das verhindert, dass beim Booten sofort alte Sollwerte auf den Speicher geschrieben werden.
 
 Wichtige Zustände:
 
@@ -28,7 +26,7 @@ So bleiben Leistung und SoC reaktionsschnell, ohne den RS485-Bus mit allen langs
 
 ## 3. Mehrstufige Messwertaufbereitung / Anti-Glitch-Pipeline
 
-Die Rohwerte des Venus werden nicht ungeprüft direkt an Home Assistant oder das Display weitergereicht. Gerade bei serieller Kommunikation können einzelne falsche oder kurzzeitig unplausible Werte auftreten. Deshalb durchläuft insbesondere die AC-Leistung mehrere Schutzstufen.
+Die Rohwerte des Venus werden nicht ungeprüft direkt an Home Assistant oder das Display weitergereicht. Gerade bei serieller Kommunikation können einzelne falsche oder kurzzeitig unplausible Werte auftreten. Deshalb durchläuft insbesondere die AC-Leistung mehrere Schutzstufen. DAs funktioniert eigentlich sehr zuverlässig.
 
 Der Datenweg sieht vereinfacht so aus:
 
@@ -52,9 +50,7 @@ Wichtig ist: Die Filter erfüllen unterschiedliche Aufgaben. Ein einzelner Media
 
 ### 3.1 AC-Power-Rohwert
 
-Die rohe AC-Leistung wird aus Register `30006` gelesen und zunächst intern als `Venus AC Power raw (fast)` verarbeitet.
-
-Jede gültige eingehende Messung aktualisiert außerdem `last_rx_ms`. Damit dient derselbe Datenstrom gleichzeitig als Lebenszeichen für die Modbus-Kommunikation.
+Die rohe AC-Leistung wird aus Register `30006` gelesen und zunächst intern als `Venus AC Power raw (fast)` verarbeitet. Jede gültige eingehende Messung aktualisiert außerdem `last_rx_ms`. Damit dient derselbe Datenstrom gleichzeitig als Lebenszeichen für die Modbus-Kommunikation.
 
 ### 3.2 Hard-Reject ungültiger Werte
 
@@ -75,9 +71,7 @@ Danach folgt eine engere Grenze für den realistisch erwarteten Betrieb:
 |Wert| > 6500 W -> verwerfen
 ```
 
-Der Referenzspeicher arbeitet deutlich unterhalb dieser Leistung. Dadurch gelangen unrealistische Werte gar nicht erst in die weitere Verarbeitung.
-
-Die beiden Grenzen sind absichtlich getrennt:
+Der Referenzspeicher arbeitet deutlich unterhalb dieser Leistung. Dadurch gelangen unrealistische Werte gar nicht erst in die weitere Verarbeitung. Die beiden Grenzen sind absichtlich getrennt:
 
 - `ABS_MAX = 20000 W` schützt gegen offensichtlich defekte Daten
 - `PLAUS_MAX = 6500 W` schützt gegen Werte, die zwar technisch darstellbar, für diesen Aufbau aber nicht plausibel sind
@@ -111,15 +105,11 @@ Dagegen:
 700 W -> 0 W -> 0 W
 ```
 
-wird nach der Bestätigung als echtes Abschalten akzeptiert.
-
-Dadurch reagiert das System weiterhin schnell auf ein echtes Ende der Leistungsausgabe, ohne auf jeden einzelnen Null-Glitch zu springen.
+wird nach der Bestätigung als echtes Abschalten akzeptiert. Dadurch reagiert das System weiterhin schnell auf ein echtes Ende der Leistungsausgabe, ohne auf jeden einzelnen Null-Glitch zu springen.
 
 ### 3.5 Median-of-3
 
-Nach den Plausibilitätsprüfungen werden die letzten drei akzeptierten Werte gespeichert.
-
-Aus diesen drei Werten wird der Median gebildet – also der mittlere Wert nach Größe, nicht der arithmetische Mittelwert.
+Nach den Plausibilitätsprüfungen werden die letzten drei akzeptierten Werte gespeichert. Aus diesen drei Werten wird der Median gebildet – also der mittlere Wert nach Größe, nicht der arithmetische Mittelwert.
 
 Beispiel:
 
@@ -133,9 +123,7 @@ Median:
 701 W
 ```
 
-Der einzelne Ausreißer mit 1600 W beeinflusst das Ergebnis praktisch nicht.
-
-Das ist für kurzfristige Einzelspitzen besser geeignet als ein einfacher Mittelwert, weil ein einzelner sehr großer Fehler den Mittelwert deutlich verschieben würde.
+Der einzelne Ausreißer mit 1600 W beeinflusst das Ergebnis praktisch nicht. Das ist für kurzfristige Einzelspitzen besser geeignet als ein einfacher Mittelwert, weil ein einzelner sehr großer Fehler den Mittelwert deutlich verschieben würde.
 
 Das Ergebnis wird in `ac_stable_w` gespeichert und als **Venus AC Power W Stable** veröffentlicht.
 
@@ -188,9 +176,7 @@ Beispiel:
 76 % -> 75 % -> 20 % -> 75 %
 ```
 
-Der einzelne Wert 20 % wird nicht übernommen.
-
-Das erklärt auch, warum `Venus SOC` gelegentlich für kurze Zeit noch den vorherigen Wert zeigen kann, obwohl im Debug-Log bereits ein anderer Rohwert auftaucht. Dieses Verhalten ist gewollt.
+Der einzelne Wert 20 % wird nicht übernommen. Das erklärt auch, warum `Venus SOC` gelegentlich für kurze Zeit noch den vorherigen Wert zeigen kann, obwohl im Debug-Log bereits ein anderer Rohwert auftaucht. Dieses Verhalten ist gewollt.
 
 Der veröffentlichte SoC besitzt zusätzlich:
 
@@ -278,9 +264,7 @@ Dadurch wird die Fernsteuerung sauber verlassen.
 
 ## 9. NOT-AUS
 
-Der Button `Venus NOT-AUS` setzt die Ausgabe sofort auf 0, deaktiviert RS485 Remote Control und setzt lokale Sollwerte zurück.
-
-Das ist kein Ersatz für die Schutzfunktionen des Speichers oder eine elektrische Not-Aus-Einrichtung, sondern ein Software-Stopp für dieses Projekt.
+Der Button `Venus NOT-AUS` setzt die Ausgabe sofort auf 0, deaktiviert RS485 Remote Control und setzt lokale Sollwerte zurück. Das ist kein Ersatz für die Schutzfunktionen des Speichers oder eine elektrische Not-Aus-Einrichtung, sondern ein Software-Stopp für dieses Projekt.
 
 ## 10. Request-Tracking und Underdelivery
 
