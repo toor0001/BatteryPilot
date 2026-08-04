@@ -4,6 +4,10 @@ Local control and monitoring of a **Marstek Venus** battery using a **LILYGO/TTG
 
 [🇩🇪 Deutsche README](README_DE.md)
 
+[![ESPHome](https://img.shields.io/badge/ESPHome-ESP32-blue)](https://esphome.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue)](https://www.home-assistant.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 This project allows the Marstek Venus to be charged and discharged directly and conveniently from Home Assistant. No cloud connection and no Marstek **Local API** are required. The TTGO receives commands from Home Assistant via Wi-Fi and forwards them to the battery via Modbus. It exposes sensors, diagnostics and charge/discharge setpoints in Home Assistant, while the TTGO display shows the most important information locally at the device.
 
 > **Status:** working project / reference implementation. Tested with a Marstek Venus E Gen3 and firmware V148. Marstek firmware changes can affect Modbus behaviour, so verify control after battery firmware updates.
