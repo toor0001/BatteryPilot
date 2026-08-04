@@ -1,22 +1,5 @@
 # Hardware & Verdrahtung
 
-## Referenz-Hardware
-
-Dieses Projekt wurde für einen direkten RS485-Zugriff auf einen Marstek Venus mit einem ESP32 aufgebaut.
-
-| Bauteil | Zweck | Hinweis | Bezugsquelle |
-|---|---|---|---|
-| LILYGO / TTGO T-Display ESP32 | Controller, WLAN, Home Assistant, Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
-| TTL ↔ RS485 Transceiver-Modul | elektrische RS485-Schnittstelle | Logikseite muss zum ESP32 passen; 3,3-V-Kompatibilität prüfen | Link folgt |
-| USB-Netzteil + USB-Kabel | Versorgung des TTGO | saubere, stabile 5-V-Versorgung verwenden | Link folgt |
-| RS485-Leitung | Verbindung zum Venus | verdrilltes A/B-Paar empfohlen | Link folgt |
-| passender Stecker für den Marstek-RS485-Port | Anschluss am Speicher | Pinbelegung vor Anschluss am eigenen Gerät prüfen | Link folgt |
-| optional: 3D-gedrucktes Gehäuse | mechanischer Schutz | STL-Ordner ist vorbereitet | eigene Druckdateien |
-
-\* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
-
-> **Wichtig:** RS485-Module sehen oft sehr ähnlich aus, können aber unterschiedliche Versorgungsspannungen, Pegelwandler oder Pinbelegungen besitzen. Deshalb nicht allein nach Platinenfarbe oder Modulform verdrahten.
-
 ## ESP32 ↔ RS485-Modul
 
 Die aktuelle ESPHome-Konfiguration verwendet:
