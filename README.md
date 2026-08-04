@@ -2,7 +2,7 @@
 
 Local control and monitoring of a **Marstek Venus** battery using a **LILYGO/TTGO T-Display**, **ESPHome**, **RS485/Modbus RTU** and **Home Assistant**.
 
-[🇩🇪 Deutsche README](README_DE.md)
+<a href="README_DE.md"><img src="https://flagcdn.com/24x18/de.png" width="24" height="18" alt="Deutsch"> Deutsche README</a>
 
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32-blue)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue)](https://www.home-assistant.io/)
