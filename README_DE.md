@@ -1,4 +1,4 @@
-# Marstek Venus Modbus Implementation on ESP32 and ESPHome
+# Marstek Venus Modbus Implementation mit ESP32 und ESPHome
 
 Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO/TTGO T-Display**, **ESPHome**, **RS485/Modbus RTU** und **Home Assistant**.
 
