@@ -240,7 +240,7 @@ Dieses Repository steht unter der **MIT-Lizenz**. Siehe [`LICENSE`](LICENSE).
 
 ## Projekt unterstützen
 
-<a href="https://paypal.me/toor0001"><img src="assets/paypal-support-de.svg" alt="Spendiere mir einen Kaffee via PayPal" width="430"></a>
+Wenn dir dieses Projekt hilft, kannst du es über den **Sponsor**-Button oben im GitHub-Repository unterstützen.
 
 ## Hinweis zur Entwicklung
 
