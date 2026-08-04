@@ -4,7 +4,7 @@ Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO
 
 [🇬🇧 English README](README.md)
 
-Der ESP32 spricht direkt per RS485 mit dem Venus. Für die eigentliche Steuerung ist keine Cloud-Verbindung nötig. Das TTGO-Display zeigt die wichtigsten Informationen direkt am Gerät, während Home Assistant Sensoren, Diagnosewerte sowie Lade- und Entlade-Sollwerte bereitstellt.
+Hiermit lässt sich die Ladung/ Entladung eines Martek Venus direkt aus Home Assistant heraus komfortabel steuern. Es ist keine Cloud-Verbindung und nicht die Marstek "Local API" nötig. Der TTGO erhält die Befehle per WLAN von Home Assistant und leitet sie per Modbus weiter. Er stellt in Home Assistant Sensoren, Diagnosewerte sowie Lade- und Entlade-Sollwerte bereit. Das TTGO-Display zeigt die wichtigsten Informationen direkt am Gerät.
 
 > **Status:** funktionierendes Projekt / Referenzaufbau. Getestet mit einem Marstek Venus E Gen3 und Firmware V148. Firmwareupdates von Marstek können das Modbus-Verhalten verändern; deshalb nach Updates die Steuerung immer erneut prüfen.
 
@@ -20,15 +20,15 @@ Der kleine TTGO-Controller sitzt direkt neben dem Marstek Venus und übernimmt d
 
 Der eigentliche Grund für dieses Projekt ist nicht nur, Daten des Marstek in Home Assistant anzuzeigen. Ziel ist es, den **Marstek Venus als gezielt steuerbaren Bestandteil eines übergeordneten Energiemanagements** nutzbar zu machen.
 
-Im ursprünglichen Hausaufbau wird der PV-Überschuss nach einer eigenen Prioritätslogik verteilt:
+In meinem Haus wird der PV-Überschuss nach einer eigenen Prioritätslogik verteilt:
 
 1. **Elektroauto zuerst:** möglichst der gesamte verfügbare PV-Überschuss soll zunächst in das EV fließen.
 2. **Warmwasser danach:** lädt das Auto nicht oder ist es voll, wird ein elektrischer Heizstab über Node-RED in mehreren Stufen zwischen **0 und 3000 W** geregelt.
 3. **Marstek zuletzt:** erst wenn weder EV noch Warmwasser den Überschuss benötigen, wird der Marstek geladen.
 
-Der Marstek dient damit hauptsächlich als **zeitlicher Energiespeicher**, der überschüssige PV-Energie für die spätere Hauslast – insbesondere nachts – vorhält. Umgekehrt soll er **nicht entladen, um EV oder Heizstab zu versorgen**. Deshalb reicht die interne Marstek-Steuerlogik für diesen Anwendungsfall nicht aus: Lade- und Entladeleistung müssen von einer übergeordneten Logik gezielt vorgegeben werden können.
+Darüber hinaus verwende ich verschiedene ZigBee Devices um z.B. beim Duschen einen "Boost" anzufordern wenn das warme Wasser knapp wird. Der Marstek selbst dient hauptsächlich als **zeitlicher Energiespeicher**, der überschüssige PV-Energie für die spätere Hauslast – insbesondere nachts – vorhält. Umgekehrt soll er **nicht entladen, um EV oder Heizstab zu versorgen**. Das alles steuere ich seit Jahren mit einem bewährten Node-RED Flow. Wegen dieser komplizierten Logik kann ich bei mir die automatisierte Eigenverbrauchsoptimierung des Marstek nicht verwenden.
 
-Dieses Projekt stellt dafür die allgemeingültige **ESPHome-/RS485-/Home-Assistant-Schnittstelle** bereit. Die konkrete Node-RED-Energiemanagement-Logik ist bewusst **nicht Bestandteil dieses Repositories**, da sie stark von PV-Anlage, Wallbox, Fahrzeug, Warmwasserbereitung und persönlichen Prioritäten abhängt.
+Dieses Projekt stellt nur die allgemeingültige **ESPHome-/RS485-/Home-Assistant-Schnittstelle** bereit, die dann z.B. über Automatisierungen oder einfach nur zur Visualisierung in Home Assistant verwendet werden kann. Die konkrete Node-RED-Energiemanagement-Logik ist bewusst **nicht Bestandteil dieses Repositories**, da sie stark von PV-Anlage, Wallbox, Fahrzeug, Warmwasserbereitung und persönlichen Prioritäten abhängt. 
 
 ## Hardware / Teileliste
 
@@ -90,9 +90,7 @@ G ──────────────────────────
 
 ### Stromversorgung
 
-Im fest eingebauten Referenzaufbau wird der TTGO **nicht über Micro-USB** versorgt. Das externe Netzteil liefert 5 V auf die grüne Träger-/Lochrasterplatine. Von dort werden sowohl der TTGO als auch das RS485-Modul versorgt.
-
-Die Micro-USB-Verbindung auf einzelnen Fotos wurde nur zum **Testen/Flashen** verwendet.
+Das externe Netzteil liefert 5 V auf die grüne Träger-/Lochrasterplatine. Von dort werden sowohl der TTGO als auch das RS485-Modul versorgt.
 
 > **Wichtig:** Vor dem Anschluss Spannung und Polarität prüfen. Eine externe 5-V-Einspeisung und USB nicht gleichzeitig anschließen, wenn nicht sichergestellt ist, dass die konkrete Hardware das unterstützt.
 
@@ -144,7 +142,7 @@ Am kleinen 3-poligen Steckverbinder im Controller liegen die Adern – **in der 
 
 <p align="center"><img src="images/case_open.jpg" alt="Innenansicht des Controllers" width="900"></p>
 
-TTGO, grüne Trägerplatine und RS485-Interface sind gemeinsam im Gehäuse untergebracht.
+TTGO, Trägerplatine, Netzteil und RS485-Interface sind gemeinsam im Gehäuse untergebracht.
 
 ## Display und die beiden Tasten
 
@@ -154,20 +152,19 @@ Das Display zeigt unter anderem Sollwert (**SET**), Ladezustand (**SOC**), aktue
 
 > **Experimentell / noch nicht am realen Gerät getestet:** Die Tastenfunktion ist in der YAML implementiert, wurde am gezeigten Aufbau aber noch nicht praktisch verifiziert.
 
-- **Linke Taste (GPIO0):** +100 W je Druck; positive Werte bedeuten Laden.
-- **Rechte Taste (GPIO35):** −100 W je Druck; negative Werte bedeuten Entladen.
+- **Obere Taste (GPIO0):** +100 W je Druck; positive Werte bedeuten Laden.
+- **Untere Taste (GPIO35):** −100 W je Druck; negative Werte bedeuten Entladen.
 - Bei **0 W** wird die Leistungsausgabe gestoppt.
 - Bereich: **−2500 W bis +2500 W**.
 - Nur aktiv, wenn **Venus Master (RS485 Enable)** eingeschaltet ist.
 
 ## ESPHome Installation
 
-1. [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in ESPHome übernehmen.
-2. `secrets.yaml` anhand von [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml) anlegen.
-3. Pins und Verdrahtung prüfen.
-4. YAML validieren und TTGO flashen.
-5. Gerät in Home Assistant hinzufügen.
-6. Vor Automationen **Venus Modbus OK** prüfen.
+1. Neues Gerät in ESPHome erstellen und "Espressif ESP32 Dev Module" wählen
+2.  [`esphome/marstek-venus-ttgo.yaml`](esphome/marstek-venus-ttgo.yaml) in ESPHome übernehmen.
+3. `secrets.yaml` anhand von [`esphome/secrets.example.yaml`](esphome/secrets.example.yaml) anlegen.
+4. YAML validieren und TTGO flashen.(z.B. per USB direkt am PC oder am HomeAssistant Host anschließen)
+6. Gerät wird in Home Assistant hinzufügen unter "Geräte und Dienste" entdeckt. Dieses dort hinzufügen.
 
 ## Marstek-App-Einstellungen / Betriebsmodus
 
@@ -182,9 +179,7 @@ Für den **getesteten V148-Referenzaufbau** gilt:
 
 ### Was ist mit einem Marstek Smart Meter?
 
-Dieser Aufbau ersetzt bewusst die automatische Marstek-Regelung durch eine **eigene externe Regelung**. Ein Marstek Smart Meter kann zwar weiterhin vorhanden sein oder Messwerte liefern, aber **während der erzwungenen RS485-Steuerung sollte man nicht erwarten, dass er die Lade-/Entladeleistung des Speichers automatisch regelt**.
-
-Im manuellen/Force-Control-Betrieb muss die externe Automation die Entscheidungen deshalb selbst treffen. Dazu gehört auch, unerwünschte Fälle zu verhindern – etwa dass der Speicher das Elektroauto, einen Heizstab oder einen anderen flexiblen Verbraucher aus dem Akku versorgt.
+Dieser Aufbau ersetzt bewusst die automatische Marstek-Regelung durch eine **eigene externe Regelung**. Ein Marstek Smart Meter kann zwar weiterhin vorhanden sein oder Messwerte liefern, aber **während der erzwungenen RS485-Steuerung sollte man nicht erwarten, dass er die Lade-/Entladeleistung des Speichers automatisch regelt**. Im manuellen/Force-Control-Betrieb muss die externe Automation die Entscheidungen deshalb selbst treffen. Dazu gehört auch, unerwünschte Fälle zu verhindern – etwa dass der Speicher das Elektroauto, einen Heizstab oder einen anderen flexiblen Verbraucher aus dem Akku versorgt.
 
 Mehr Details: [`docs/MARSTEK_APP_SETTINGS.md`](docs/MARSTEK_APP_SETTINGS.md)
 
