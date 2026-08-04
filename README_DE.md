@@ -2,7 +2,7 @@
 
 Lokale Steuerung und Überwachung eines **Marstek Venus** Speichers mit **LILYGO/TTGO T-Display**, **ESPHome**, **RS485/Modbus RTU** und **Home Assistant**.
 
-[English README](README.md)
+<a href="README.md"><img src="https://flagcdn.com/24x18/gb.png" width="24" height="18" alt="English"> English README</a>
 
 [![ESPHome](https://img.shields.io/badge/ESPHome-ESP32-blue)](https://esphome.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue)](https://www.home-assistant.io/)
