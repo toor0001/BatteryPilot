@@ -10,7 +10,7 @@ Local control and monitoring of a **Marstek Venus** battery using a **LILYGO/TTG
 
 This project allows the Marstek Venus to be charged and discharged directly and conveniently from Home Assistant. No cloud connection and no Marstek **Local API** are required. The TTGO receives commands from Home Assistant via Wi-Fi and forwards them to the battery via Modbus. It exposes sensors, diagnostics and charge/discharge setpoints in Home Assistant, while the TTGO display shows the most important information locally at the device.
 
-> **Status:** working project / reference implementation. Tested with a Marstek Venus E Gen3 and firmware V148. Marstek firmware changes can affect Modbus behaviour, so verify control after battery firmware updates.
+> **Project status: completed / reference implementation.** Tested with a Marstek Venus E Gen3 and firmware V148. This project is not under active development. Updates will only be made when necessary, for example if Marstek firmware changes affect RS485/Modbus communication. After battery firmware updates, always verify that control still works as expected.
 
 ## Finished installation
 
