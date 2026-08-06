@@ -40,6 +40,7 @@ Dieses Projekt stellt nur die allgemeingültige **ESPHome-/RS485-/Home-Assistant
 |---|---|---|---|
 | LILYGO / TTGO T-Display ESP32 | Controller, WLAN und lokales Display | ST7789, 135 × 240 px | [Amazon*](https://link.amazon/B0gITBNf5) |
 | TTL ↔ RS485 Transceiver-Modul | Modbus/RS485-Schnittstelle | verwendetes Modul mit Pins `3-5V`, `RX-I`, `TX-O`, `RTS`, `GND` sowie `A/B/G` | [Amazon*](https://link.amazon/B0evMwitV) |
+| 3-poliger Steckverbinder | lösbare RS485-Kabelverbindung im Controller | für die drei Adern A/B/G wie im Abschnitt Verdrahtung gezeigt | [Amazon*](https://link.amazon/B0axG0VkB) |
 | 5-V-Netzteil | feste Versorgung des Controllers | +5 V und GND gehen auf die grüne Trägerplatine; Micro-USB ist nicht die reguläre Versorgung | [Amazon*](https://link.amazon/B047QzbuV) |
 
 \* **Affiliate-Hinweis:** Mit `*` gekennzeichnete Links können Affiliate-Links sein. Wenn du darüber etwas kaufst, kann der Projektbetreiber eine kleine Provision erhalten. Für dich ändert sich der Preis dadurch nicht.
